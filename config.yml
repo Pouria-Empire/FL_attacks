@@ -1,0 +1,39 @@
+server:
+  address: "0.0.0.0:8080"
+  rounds: 2
+  min_clients: 2
+  metrics:
+    - "loss"
+    - "accuracy"
+
+clients:
+  total: 2
+  batch_size: 32
+  local_epochs: 2
+  learning_rate: 0.01
+
+data:
+  path: "./data"
+  dataset: "MNIST"
+
+attacks:
+  gradient_inversion:
+    enable: true
+    type: "dlg"
+    target_client: 1
+    learning_rate: 0.01
+    
+  model_poisoning:
+    enable: false
+    malicious_clients: [2]
+    type: "scaling"  # "noise", "sign_flip", or "scaling"
+    
+  data_poisoning:
+    enable: false
+    malicious_clients: [2]
+    target_label: 0
+    
+  backdoor:
+    enable: false
+    malicious_clients: [2]
+    target_label: 0
