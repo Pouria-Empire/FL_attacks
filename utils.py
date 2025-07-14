@@ -16,7 +16,9 @@ def load_data(data_dir="./data"):
 def get_parameters(model):
     return [val.cpu().numpy() for _, val in model.state_dict().items()]
 
-def set_parameters(model, parameters):
-    params_dict = zip(model.state_dict().keys(), parameters)
-    state_dict = {k: torch.tensor(v) for k, v in params_dict}
-    model.load_state_dict(state_dict)
+def set_parameters(self, parameters):
+    """Handle both numpy arrays and tensors"""
+    params_dict = zip(self.model.state_dict().keys(), parameters)
+    state_dict = {k: torch.tensor(v) if not isinstance(v, torch.Tensor) else v
+                for k, v in params_dict}
+    self.model.load_state_dict(state_dict)
