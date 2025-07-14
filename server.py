@@ -1,73 +1,51 @@
 import flwr as fl
 from flwr.server.strategy import FedAvg
 from typing import Dict, List, Tuple, Optional, Any, Union
-from flwr.common import Scalar, Parameters, NDArrays, parameters_to_ndarrays
+from flwr.common import Scalar, Parameters, NDArrays, parameters_to_ndarrays, ndarrays_to_parameters
 import yaml
 import numpy as np
 import matplotlib.pyplot as plt
 import os
 from PIL import Image
-from collections import OrderedDict
 import torch
-from model import SimpleNN  # Import your model class
-from utils import get_parameters  # Import parameter extraction function
-from flwr.common import ndarrays_to_parameters  # Import parameter conversion
-# Import attacks
+
+# Import model and attacks
+from model import SimpleNN
+from utils import get_parameters
 from attacks.gradient_inversion import dlg_attack, mdlg_attack
 
 def load_config():
     with open("config.yml", "r") as f:
         return yaml.safe_load(f)
 
-def weighted_metrics_aggregation(metrics: List[Tuple[int, Dict[str, Scalar]]]) -> Dict[str, Scalar]:
-    """Improved metrics aggregation with weighted averaging"""
-    if not metrics:
-        return {}
+def safe_metrics_aggregation(metrics: List[Tuple[int, Dict[str, Scalar]]]) -> Dict[str, Scalar]:
+    """Robust metrics aggregation"""
+    aggregated = {}
+    train_metrics = [m for _, m in metrics if m.get("phase") == "train"]
+    eval_metrics = [m for _, m in metrics if m.get("phase") == "eval"]
+
+    def avg_metric(metric_list, name):
+        total = sum(m.get(name, 0) * m.get("num_examples", 1) for m in metric_list)
+        examples = sum(m.get("num_examples", 1) for m in metric_list)
+        return total / examples if examples > 0 else 0.0
+
+    if train_metrics:
+        aggregated["train_loss"] = avg_metric(train_metrics, "loss")
+        aggregated["train_accuracy"] = avg_metric(train_metrics, "accuracy")
     
-    # Initialize metrics storage
-    aggregated = {
-        "train_loss": 0.0,
-        "train_accuracy": 0.0,
-        "eval_loss": 0.0,
-        "eval_accuracy": 0.0
-    }
-    train_count = 0
-    eval_count = 0
-    
-    for num_examples, m in metrics:
-        phase = m.get("phase", "train")
-        
-        if phase == "train":
-            if "loss" in m:
-                aggregated["train_loss"] += m["loss"] * num_examples
-            if "accuracy" in m:
-                aggregated["train_accuracy"] += m["accuracy"] * num_examples
-            train_count += num_examples
-        elif phase == "eval":
-            if "loss" in m:
-                aggregated["eval_loss"] += m["loss"] * num_examples
-            if "accuracy" in m:
-                aggregated["eval_accuracy"] += m["accuracy"] * num_examples
-            eval_count += num_examples
-    
-    # Calculate weighted averages
-    if train_count > 0:
-        aggregated["train_loss"] /= train_count
-        aggregated["train_accuracy"] /= train_count
-    if eval_count > 0:
-        aggregated["eval_loss"] /= eval_count
-        aggregated["eval_accuracy"] /= eval_count
-    
-    # Print results only if we have metrics
-    print("\n[Round Summary]")
-    if train_count > 0:
+    if eval_metrics:
+        aggregated["eval_loss"] = avg_metric(eval_metrics, "loss")
+        aggregated["eval_accuracy"] = avg_metric(eval_metrics, "accuracy")
+
+    print("\n[Round Metrics]")
+    if "train_loss" in aggregated:
         print(f"Train Loss: {aggregated['train_loss']:.4f} | Accuracy: {aggregated['train_accuracy']*100:.2f}%")
-    if eval_count > 0:
+    if "eval_loss" in aggregated:
         print(f"Eval Loss: {aggregated['eval_loss']:.4f} | Accuracy: {aggregated['eval_accuracy']*100:.2f}%")
     
-    return {k: v for k, v in aggregated.items() if (("train" in k and train_count > 0) or ("eval" in k and eval_count > 0))}
+    return aggregated
 
-class ImprovedFedAvg(FedAvg):
+class SecureFedAvg(FedAvg):
     def __init__(self, attack_config: Dict[str, Any], *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.attack_config = attack_config
@@ -75,91 +53,123 @@ class ImprovedFedAvg(FedAvg):
 
     def initialize_parameters(self, client_manager):
         """Initialize global model parameters"""
-        model = SimpleNN()  # Make sure SimpleNN is imported
-        self.global_model = ndarrays_to_parameters(get_parameters(model))
+        model = SimpleNN()
+        params = get_parameters(model)
+        self.global_model = ndarrays_to_parameters(params)
         return self.global_model
 
     def aggregate_fit(self, server_round, results, failures):
-        """Improved aggregation with better error handling"""
-        # First get aggregated parameters and metrics
-        aggregated_params, metrics = super().aggregate_fit(server_round, results, failures)
+        """Main aggregation with attack handling"""
+        aggregated, metrics = super().aggregate_fit(server_round, results, failures)
         
         if not results:
-            return aggregated_params, metrics
+            return aggregated, metrics
 
-        # Store global model for gradient computation
-        if aggregated_params is not None:
-            self.global_model = aggregated_params
+        if aggregated:
+            self.global_model = aggregated
 
-        # Gradient inversion attack if enabled
         if self.attack_config.get("gradient_inversion", {}).get("enable", False):
-            self._perform_gradient_inversion(server_round, results)
-        
-        return aggregated_params, metrics
+            self._perform_gradient_attack(server_round, results)
 
-    def _perform_gradient_inversion(self, server_round, results):
-        """Handle gradient inversion attacks safely"""
-        target_client_id = self.attack_config["gradient_inversion"].get("target_client", 1)
-        learning_rate = self.attack_config["gradient_inversion"].get("learning_rate", 0.01)
+        return aggregated, metrics
+
+    def _perform_gradient_attack(self, server_round, results):
+        """UUID-only gradient attack with shape validation"""
+        target_pos = self.attack_config["gradient_inversion"].get("target_client", 1) - 1
         
-        for client, fit_res in results:
-            cid = client.cid
-            try:
-                # Handle both UUID and clientX formats
-                if cid.startswith("client"):
-                    client_id = int(cid.replace("client", ""))
-                else:
-                    continue  # Skip UUID clients for attacks
-                
-                if client_id == target_client_id and self.global_model is not None:
-                    # Perform reconstruction
-                    updated_params = fit_res.parameters
-                    gradients = self._compute_gradients(updated_params, learning_rate)
-                    reconstructed = self._reconstruct_data(gradients)
-                    
-                    if reconstructed is not None:
-                        self._save_reconstruction(reconstructed, client_id, server_round)
-            except Exception as e:
-                print(f"Skipping gradient inversion for {cid}: {str(e)}")
-                continue
+        if len(results) <= target_pos or not self.global_model:
+            return
+
+        client, res = results[target_pos]
+        try:
+            gradients = self._compute_gradients(res.parameters, 
+                        self.attack_config["gradient_inversion"].get("learning_rate", 0.01))
+            
+            # Expected shapes for SimpleNN (784->64->10)
+            expected_shapes = {
+                'dlg': [torch.Size([64, 784]), torch.Size([64])],
+                'mdlg': [torch.Size([64, 784])]
+            }
+            
+            attack_type = self.attack_config["gradient_inversion"].get("type", "dlg")
+            req_shapes = expected_shapes[attack_type]
+            
+            if all(g.shape == s for g, s in zip(gradients[:len(req_shapes)], req_shapes)):
+                reconstructed = dlg_attack(
+                    [g.numpy() for g in gradients[:2]],   # 0: weight, 1: bias
+                    (1, 1, 28, 28),
+                    (1, 10)
+                )
+                if reconstructed is not None:
+                    self._save_reconstruction(reconstructed, target_pos+1, server_round)
+        
+        except Exception as e:
+            print(f"Attack failed on client {client.cid}: {str(e)}")
 
     def _compute_gradients(self, updated_params, lr):
-        """Compute gradients from parameter updates"""
+        """Compute gradients with automatic shape correction"""
         updated = parameters_to_ndarrays(updated_params)
         global_weights = parameters_to_ndarrays(self.global_model)
-        return [(w - u) / lr for w, u in zip(global_weights, updated)]
+        
+        gradients = []
+        for i, (g, u) in enumerate(zip(global_weights, updated)):
+            grad = (g - u) / lr
+            
+            # Auto-reshape based on parameter position
+            if i == 0:  # fc1 weights (64, 784)
+                grad = grad.reshape(64, 784)
+            elif i == 1:  # fc1 bias (64)
+                grad = grad.reshape(64)
+            elif i == 2:  # fc2 weights (10, 64)
+                grad = grad.reshape(10, 64)
+            elif i == 3:  # fc2 bias (10)
+                grad = grad.reshape(10)
+                
+            gradients.append(torch.from_numpy(grad).float())
+        
+        return gradients
 
-    def _reconstruct_data(self, gradients):
-        """Reconstruct data using configured attack method"""
-        attack_type = self.attack_config["gradient_inversion"].get("type", "mdlg")
+    def _reconstruct_data(self, gradients, attack_type):
+        """Handle gradient shapes correctly for MNIST reconstruction"""
         if attack_type == "dlg":
-            return dlg_attack(gradients, (1, 1, 28, 28), (1, 10))
-        return mdlg_attack(gradients, (1, 1, 28, 28))
+            # For MNIST: fc1 weights are (64, 784), fc2 are (10, 64)
+            fc1_grad = gradients[0].numpy()  # Shape should be (64, 784)
+            fc1_grad = fc1_grad.reshape(64, 784) if fc1_grad.shape != (64, 784) else fc1_grad
+            fc2_grad = gradients[1].numpy()  # Shape should be (10, 64)
+            fc2_grad = fc2_grad.reshape(10, 64) if fc2_grad.shape != (10, 64) else fc2_grad
+            
+            return dlg_attack(
+                [fc1_grad, fc2_grad],  # Weight and bias gradients
+                (1, 1, 28, 28),        # MNIST input shape
+                (1, 10)                 # Output classes
+            )
+        else:
+            # For MDLG just use first layer gradients
+            fc1_grad = gradients[0].numpy()
+            fc1_grad = fc1_grad.reshape(64, 784) if fc1_grad.shape != (64, 784) else fc1_grad
+            return mdlg_attack([fc1_grad], (1, 1, 28, 28))
 
     def _save_reconstruction(self, data, client_id, round_num):
-        """Save and visualize reconstructed data"""
-        img_data = data[0, 0]
-        img_data = (img_data - img_data.min()) / (img_data.max() - img_data.min()) * 255
-        img_data = img_data.astype(np.uint8)
+        """Save reconstructed image"""
+        img = (data[0, 0] - data[0, 0].min()) / (data[0, 0].max() - data[0, 0].min()) * 255
+        img = img.astype(np.uint8)
         
         os.makedirs("reconstructions", exist_ok=True)
-        img_path = f"reconstructions/client{client_id}_round{round_num}.png"
-        Image.fromarray(img_data).save(img_path)
-        print(f"Saved reconstruction to {img_path}")
+        path = f"reconstructions/client{client_id}_round{round_num}.png"
+        Image.fromarray(img).save(path)
+        print(f"[Attack] Saved reconstruction to {path}")
 
 def main():
     config = load_config()
-    attack_config = config.get("attacks", {})
-    
-    strategy = ImprovedFedAvg(
-        attack_config=attack_config,
+    strategy = SecureFedAvg(
+        attack_config=config.get("attacks", {}),
         fraction_fit=1.0,
         fraction_evaluate=1.0,
         min_fit_clients=config["server"]["min_clients"],
         min_evaluate_clients=config["server"]["min_clients"],
         min_available_clients=config["server"]["min_clients"],
-        evaluate_metrics_aggregation_fn=weighted_metrics_aggregation,
-        fit_metrics_aggregation_fn=weighted_metrics_aggregation
+        evaluate_metrics_aggregation_fn=safe_metrics_aggregation,
+        fit_metrics_aggregation_fn=safe_metrics_aggregation
     )
     
     fl.server.start_server(
