@@ -1,13 +1,22 @@
 import flwr as fl
+from flwr.common import (
+    #FitIns,
+    NDArrays,  # <-- FIX: Added the missing import
+    Parameters,
+    Scalar,
+    ndarrays_to_parameters,
+    parameters_to_ndarrays,
+)
+from flwr.server.client_manager import ClientManager
 from flwr.server.strategy import FedAvg
-from typing import Dict, List, Tuple, Optional, Any, Union
-from flwr.common import Scalar, Parameters, NDArrays, parameters_to_ndarrays, ndarrays_to_parameters
+from typing import Dict, List, Tuple, Any
 import yaml
 import numpy as np
 import matplotlib.pyplot as plt
 import os
 from PIL import Image
 import torch
+import pickle
 
 # Import model and attacks
 from model import SimpleNN
@@ -19,7 +28,6 @@ def load_config():
         return yaml.safe_load(f)
 
 def safe_metrics_aggregation(metrics: List[Tuple[int, Dict[str, Scalar]]]) -> Dict[str, Scalar]:
-    """Robust metrics aggregation"""
     aggregated = {}
     train_metrics = [m for _, m in metrics if m.get("phase") == "train"]
     eval_metrics = [m for _, m in metrics if m.get("phase") == "eval"]
@@ -45,119 +53,118 @@ def safe_metrics_aggregation(metrics: List[Tuple[int, Dict[str, Scalar]]]) -> Di
     
     return aggregated
 
+
 class SecureFedAvg(FedAvg):
     def __init__(self, attack_config: Dict[str, Any], *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.attack_config = attack_config
-        self.global_model = None
+        self.reconstruction_dir = "reconstructions"
+        os.makedirs(self.reconstruction_dir, exist_ok=True)
 
-    def initialize_parameters(self, client_manager):
-        """Initialize global model parameters"""
+    def initialize_parameters(self, client_manager: ClientManager) -> Parameters:
         model = SimpleNN()
         params = get_parameters(model)
-        self.global_model = ndarrays_to_parameters(params)
-        return self.global_model
+        return ndarrays_to_parameters(params)
 
     def aggregate_fit(self, server_round, results, failures):
-        """Main aggregation with attack handling"""
         aggregated, metrics = super().aggregate_fit(server_round, results, failures)
         
-        if not results:
+        if not results or not aggregated:
             return aggregated, metrics
 
-        if aggregated:
-            self.global_model = aggregated
+        attack_params = self.attack_config.get("gradient_inversion", {})
+        if not attack_params.get("enable", False):
+            return aggregated, metrics
 
-        if self.attack_config.get("gradient_inversion", {}).get("enable", False):
-            self._perform_gradient_attack(server_round, results)
+        target_client_id = attack_params.get("target_client", 1)
+        for _, fit_res in results:
+            if fit_res.metrics.get("logical_client_id") == target_client_id:
+                data_file = f"client_data/client_{target_client_id}_data.pkl"
+                try:
+                    if os.path.exists(data_file):
+                        with open(data_file, 'rb') as f:
+                            client_data = pickle.load(f)
+                        
+                        initial_params = client_data["initial_params"]
+                        original_image = client_data["data_batch"]
+                        original_label = client_data["target_batch"]
+                        
+                        gradients = self._compute_gradients(
+                            initial_params=initial_params,
+                            updated_params=fit_res.parameters,
+                            lr=attack_params["client_lr"]
+                        )
+                        
+                        reconstructed = self._reconstruct_data(gradients, attack_params)
+                        
+                        if reconstructed is not None:
+                            self._save_reconstruction(
+                                reconstructed,
+                                client_id=target_client_id,
+                                round_num=server_round,
+                                original_data=original_image,
+                                original_label=original_label
+                            )
+                        os.remove(data_file)
+                except Exception as e:
+                    print(f"[DLG Failed] Error on client {target_client_id}: {str(e)}")
+                break
 
         return aggregated, metrics
 
-    def _perform_gradient_attack(self, server_round, results):
-        """UUID-only gradient attack with shape validation"""
-        target_pos = self.attack_config["gradient_inversion"].get("target_client", 1) - 1
-        
-        if len(results) <= target_pos or not self.global_model:
-            return
+    def _compute_gradients(self, initial_params: NDArrays, updated_params: Parameters, lr: float) -> List[np.ndarray]:
+        updated_weights = parameters_to_ndarrays(updated_params)
+        return [(init - upd) / lr for init, upd in zip(initial_params, updated_weights)]
 
-        client, res = results[target_pos]
-        try:
-            gradients = self._compute_gradients(res.parameters, 
-                        self.attack_config["gradient_inversion"].get("learning_rate", 0.01))
-            
-            # Expected shapes for SimpleNN (784->64->10)
-            expected_shapes = {
-                'dlg': [torch.Size([64, 784]), torch.Size([64])],
-                'mdlg': [torch.Size([64, 784])]
-            }
-            
-            attack_type = self.attack_config["gradient_inversion"].get("type", "dlg")
-            req_shapes = expected_shapes[attack_type]
-            
-            if all(g.shape == s for g, s in zip(gradients[:len(req_shapes)], req_shapes)):
-                reconstructed = dlg_attack(
-                    [g.numpy() for g in gradients[:2]],   # 0: weight, 1: bias
-                    (1, 1, 28, 28),
-                    (1, 10)
-                )
-                if reconstructed is not None:
-                    self._save_reconstruction(reconstructed, target_pos+1, server_round)
+    def _reconstruct_data(self, gradients: List[np.ndarray], attack_params: Dict) -> np.ndarray:
+        attack_type = attack_params.get("type", "dlg")
         
-        except Exception as e:
-            print(f"Attack failed on client {client.cid}: {str(e)}")
-
-    def _compute_gradients(self, updated_params, lr):
-        """Compute gradients with automatic shape correction"""
-        updated = parameters_to_ndarrays(updated_params)
-        global_weights = parameters_to_ndarrays(self.global_model)
-        
-        gradients = []
-        for i, (g, u) in enumerate(zip(global_weights, updated)):
-            grad = (g - u) / lr
-            
-            # Auto-reshape based on parameter position
-            if i == 0:  # fc1 weights (64, 784)
-                grad = grad.reshape(64, 784)
-            elif i == 1:  # fc1 bias (64)
-                grad = grad.reshape(64)
-            elif i == 2:  # fc2 weights (10, 64)
-                grad = grad.reshape(10, 64)
-            elif i == 3:  # fc2 bias (10)
-                grad = grad.reshape(10)
-                
-            gradients.append(torch.from_numpy(grad).float())
-        
-        return gradients
-
-    def _reconstruct_data(self, gradients, attack_type):
-        """Handle gradient shapes correctly for MNIST reconstruction"""
         if attack_type == "dlg":
-            # For MNIST: fc1 weights are (64, 784), fc2 are (10, 64)
-            fc1_grad = gradients[0].numpy()  # Shape should be (64, 784)
-            fc1_grad = fc1_grad.reshape(64, 784) if fc1_grad.shape != (64, 784) else fc1_grad
-            fc2_grad = gradients[1].numpy()  # Shape should be (10, 64)
-            fc2_grad = fc2_grad.reshape(10, 64) if fc2_grad.shape != (10, 64) else fc2_grad
-            
             return dlg_attack(
-                [fc1_grad, fc2_grad],  # Weight and bias gradients
-                (1, 1, 28, 28),        # MNIST input shape
-                (1, 10)                 # Output classes
+                gradients=[gradients[0], gradients[1]],
+                input_shape=(1, 1, 28, 28),
+                output_shape=(1, 10),
+                lr=attack_params.get("attack_lr", 0.1),
+                iterations=attack_params.get("iterations", 1000)
+            )
+        elif attack_type == "mdlg":
+            return mdlg_attack(
+                gradients=[gradients[0]],
+                input_shape=(1, 1, 28, 28),
+                lr=attack_params.get("attack_lr", 0.01),
+                iterations=attack_params.get("iterations", 500)
             )
         else:
-            # For MDLG just use first layer gradients
-            fc1_grad = gradients[0].numpy()
-            fc1_grad = fc1_grad.reshape(64, 784) if fc1_grad.shape != (64, 784) else fc1_grad
-            return mdlg_attack([fc1_grad], (1, 1, 28, 28))
+            print(f"Unknown attack type: {attack_type}")
+            return None
 
-    def _save_reconstruction(self, data, client_id, round_num):
-        """Save reconstructed image"""
-        img = (data[0, 0] - data[0, 0].min()) / (data[0, 0].max() - data[0, 0].min()) * 255
-        img = img.astype(np.uint8)
+    def _save_reconstruction(self, data, client_id, round_num, original_data=None, original_label=None):
+        img_array = data
+        img = (img_array - img_array.min()) / (img_array.max() - img_array.min())
+        img = (img * 255).astype(np.uint8).squeeze()
         
-        os.makedirs("reconstructions", exist_ok=True)
-        path = f"reconstructions/client{client_id}_round{round_num}.png"
-        Image.fromarray(img).save(path)
-        print(f"[Attack] Saved reconstruction to {path}")
+        recon_path = f"{self.reconstruction_dir}/client{client_id}_round{round_num}.png"
+        Image.fromarray(img).save(recon_path)
+        
+        if original_data is not None:
+            plt.figure(figsize=(10, 5))
+            
+            plt.subplot(1, 2, 1)
+            plt.imshow(original_data[0].squeeze(), cmap='gray')
+            plt.title(f"Original (Label: {original_label[0]})")
+            plt.axis('off')
+            
+            plt.subplot(1, 2, 2)
+            plt.imshow(img, cmap='gray')
+            plt.title("Reconstructed")
+            plt.axis('off')
+            
+            comp_path = f"{self.reconstruction_dir}/comparison_client{client_id}_round{round_num}.png"
+            plt.savefig(comp_path)
+            plt.close()
+            print(f"[DLG] Saved comparison to {comp_path}")
+        else:
+            print(f"[DLG] Saved reconstruction to {recon_path}")
 
 def main():
     config = load_config()
