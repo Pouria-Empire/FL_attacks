@@ -17,7 +17,7 @@ attacks:
   gradient_inversion:
     enable: true     # <-- ATTACK IS DISABLED
     target_client: 1
-    type: "dlg"
+    type: "mdlg"   # <-- mdlg, dlg (actually idlg)
     client_lr: 0.01
     attack_lr: 0.01
     iterations: 5000
