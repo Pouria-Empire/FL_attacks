@@ -1,7 +1,7 @@
 # attacks/gradient_inversion.py
 import torch
 import numpy as np
-from typing import Tuple
+from typing import Tuple, List
 
 # In attacks/gradient_inversion.py
 
@@ -66,6 +66,7 @@ def dlg_attack(
 
     # Return the optimized data
     return dummy_data.detach().numpy()
+
 
 def mdlg_attack(gradients: list, input_shape: Tuple[int],
                 lr: float = 0.01, iterations: int = 500) -> np.ndarray:

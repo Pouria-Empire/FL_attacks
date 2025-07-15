@@ -128,16 +128,23 @@ class SecureFedAvg(FedAvg):
 
     def _reconstruct_data(self, gradients: List[np.ndarray], attack_params: Dict) -> np.ndarray:
         attack_type = attack_params.get("type", "dlg")
-        
+        print(f"[Attack] Attempting reconstruction using '{attack_type}' method.")
+
         if attack_type == "dlg":
-            # The gradients list is already what we need
             return dlg_attack(
                 gradients=gradients,
                 input_shape=(1, 1, 28, 28),
                 lr=attack_params.get("attack_lr", 0.1),
                 iterations=attack_params.get("iterations", 1000)
             )
-        # ... (mDLG and other attacks remain the same)
+        elif attack_type == "mdlg":
+             # mDLG only uses the first gradient (fc1.weight)
+            return mdlg_attack(
+                gradients=[gradients[0]], 
+                input_shape=(1, 1, 28, 28),
+                lr=attack_params.get("attack_lr", 0.01),
+                iterations=attack_params.get("iterations", 500)
+            )
         else:
             print(f"Unknown attack type: {attack_type}")
             return None
