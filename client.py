@@ -2,38 +2,23 @@ import flwr as fl
 import torch
 import argparse
 from torch.utils.data import DataLoader, Subset
-from model import SimpleNN
-from utils import load_data, get_parameters, set_parameters
 import yaml
 import numpy as np
 import os
 import pickle
 
+# Import all necessary components from your attack files
+from model import SimpleNN
+from utils import load_data, get_parameters, set_parameters
+from attacks.data_poisoning import PoisonedDataset
+from attacks.model_poisoning import add_noise, sign_flip, scaling_attack
+
+
 def load_config():
     with open("config.yml", "r") as f:
         return yaml.safe_load(f)
 
-# We now need BOTH training functions.
-# This one is for the DLG target.
-def train_single_batch(model, data_batch, lr):
-    model.train()
-    optimizer = torch.optim.SGD(model.parameters(), lr=lr)
-    criterion = torch.nn.CrossEntropyLoss()
-
-    data, target = data_batch
-    optimizer.zero_grad()
-    output = model(data)
-    loss = criterion(output, target)
-    loss.backward()
-    optimizer.step()
-
-    pred = output.argmax(dim=1)
-    correct = pred.eq(target).sum().item()
-    total = target.size(0)
-
-    return loss.item(), correct, total
-
-# This one is for the honest clients.
+# The standard train function
 def train(model, train_loader, epochs, lr):
     """Train the model on the training set for a number of epochs."""
     model.train()
@@ -41,7 +26,6 @@ def train(model, train_loader, epochs, lr):
     optimizer = torch.optim.SGD(model.parameters(), lr=lr)
     
     for epoch in range(epochs):
-        epoch_loss, correct, total = 0.0, 0, 0
         for data, target in train_loader:
             optimizer.zero_grad()
             output = model(data)
@@ -49,23 +33,15 @@ def train(model, train_loader, epochs, lr):
             loss.backward()
             optimizer.step()
             
-            epoch_loss += loss.item() * data.size(0)
-            pred = output.argmax(dim=1)
-            correct += pred.eq(target).sum().item()
-            total += target.size(0)
-            
-    final_loss = epoch_loss / total if total > 0 else 0.0
-    final_acc = correct / total if total > 0 else 0.0
-    return final_loss, final_acc
+    # We don't need to return loss/accuracy from here for the client's purpose
+    return
 
-
+# The standard test function
 def test(model, test_loader):
-    # This function is fine
     model.eval()
     test_loss = 0
     correct = 0
     criterion = torch.nn.CrossEntropyLoss(reduction='sum')
-
     with torch.no_grad():
         for data, target in test_loader:
             output = model(data)
@@ -77,24 +53,40 @@ def test(model, test_loader):
 
 class FlowerClient(fl.client.NumPyClient):
     def __init__(self, cid, attack_config):
-        # This method is fine as it was
         self.cid_string = cid
         self.client_id_numeric = int(cid.replace("client", ""))
         self.attack_config = attack_config
         self.model = SimpleNN()
         self.config = load_config()
 
+        # Correctly unpack and store train_data_full and test_data
         train_data_full, test_data = load_data(self.config["data"]["path"])
+        
+        # --- DATA POISONING LOGIC ---
+        dp_params = self.attack_config.get("data_poisoning", {})
+        is_dp_malicious = (dp_params.get("enable", False) and
+                        self.client_id_numeric in dp_params.get("malicious_clients", []))
+
+        if is_dp_malicious:
+            print(f"Client {self.client_id_numeric}: Applying data poisoning to its dataset.")
+            train_data_full = PoisonedDataset(
+                dataset=train_data_full,
+                poison_frac=dp_params.get("poison_frac", 0.1),
+                target_label=dp_params.get("target_label", 0)
+            )
+        
+        # --- Data partitioning ---
         n_clients = self.config["clients"]["total"]
         client_idx = self.client_id_numeric - 1
         n_samples = len(train_data_full)
         per_client = n_samples // n_clients
         indices = list(range(client_idx * per_client,
-                       (client_idx + 1) * per_client if client_idx != n_clients - 1 else n_samples))
+                    (client_idx + 1) * per_client if client_idx != n_clients - 1 else n_samples))
 
         self.train_data_subset = Subset(train_data_full, indices)
-        self.test_data = test_data
+        self.test_data = test_data # <-- This line now works correctly
 
+        # --- Dataloaders ---
         self.train_loader = DataLoader(
             self.train_data_subset,
             batch_size=self.config["clients"]["batch_size"],
@@ -116,77 +108,59 @@ class FlowerClient(fl.client.NumPyClient):
     def fit(self, parameters, config):
         self.set_parameters(parameters)
 
-        gradient_inversion_params = self.attack_config.get("gradient_inversion", {})
-        is_dlg_target = (gradient_inversion_params.get("enable", False) and
-                         self.client_id_numeric == gradient_inversion_params.get("target_client"))
+        # --- GRADIENT INVERSION LOGIC ---
+        gi_params = self.attack_config.get("gradient_inversion", {})
+        is_gi_target = (gi_params.get("enable", False) and
+                        self.client_id_numeric == gi_params.get("target_client"))
 
-        if is_dlg_target:
-            print(f"Client {self.client_id_numeric}: Acting as DLG target. Sending raw gradients.")
-            
+        if is_gi_target:
+            print(f"Client {self.client_id_numeric}: Acting as Gradient Inversion target. Sending raw gradients.")
             single_batch_loader = DataLoader(self.train_data_subset, batch_size=1, shuffle=True)
             data, target = next(iter(single_batch_loader))
 
             self.model.train()
             criterion = torch.nn.CrossEntropyLoss()
-            
             output = self.model(data)
             loss = criterion(output, target)
             
+            # Get gradients but DO NOT update the model
             gradients = torch.autograd.grad(loss, self.model.parameters())
             gradients_as_numpy = [grad.cpu().numpy() for grad in gradients]
 
-            # Create the metrics dictionary AND add the client ID
-            metrics = {
-                "loss": loss.item(), 
-                "accuracy": 0.0,
-                "phase": "train",
-                "logical_client_id": self.client_id_numeric # <-- ADDED HERE
-            }
-            
-            os.makedirs("client_data", exist_ok=True)
-            data_to_save = {
-                'data_batch': data.cpu().numpy(),
-                'target_batch': target.cpu().numpy()
-            }
-            with open(f"client_data/client_{self.client_id_numeric}_data.pkl", 'wb') as f:
-                pickle.dump(data_to_save, f)
+            return gradients_as_numpy, 1, {"attack": "gradient_inversion", "logical_client_id": self.client_id_numeric}
+        
+        # --- STANDARD TRAINING & MODEL POISONING LOGIC ---
+        
+        # Perform standard training on the (potentially poisoned) data
+        train(self.model, self.train_loader, epochs=self.config["clients"]["local_epochs"], lr=self.config["clients"]["learning_rate"])
+        
+        updated_params = self.get_parameters({})
 
-            return gradients_as_numpy, 1, metrics
+        mp_params = self.attack_config.get("model_poisoning", {})
+        is_mp_malicious = (mp_params.get("enable", False) and
+                           self.client_id_numeric in mp_params.get("malicious_clients", []))
 
-        else:
-            # HONEST CLIENT: Perform full local training.
-            loss, accuracy = train(
-                self.model,
-                self.train_loader,
-                epochs=self.config["clients"]["local_epochs"],
-                lr=self.config["clients"]["learning_rate"]
-            )
-            num_examples = len(self.train_loader.dataset)
-
-            # Create the metrics dictionary AND add the client ID
-            metrics = {
-                "loss": float(loss), 
-                "accuracy": float(accuracy),
-                "phase": "train",
-                "logical_client_id": self.client_id_numeric # <-- ADDED HERE
-            }
-            
-            return self.get_parameters({}), num_examples, metrics
-
+        if is_mp_malicious:
+            attack_type = mp_params.get("type", "scaling")
+            print(f"Client {self.client_id_numeric}: Applying model poisoning ({attack_type}).")
+            if attack_type == "scaling":
+                updated_params = scaling_attack(updated_params, mp_params.get("scale_factor", -1.0))
+            elif attack_type == "sign_flip":
+                updated_params = sign_flip(updated_params)
+            elif attack_type == "noise":
+                updated_params = add_noise(updated_params, mp_params.get("noise_scale", 0.5))
+        
+        num_examples = len(self.train_loader.dataset)
+        return updated_params, num_examples, {"logical_client_id": self.client_id_numeric}
+        
 
     def evaluate(self, parameters, config):
         self.set_parameters(parameters)
         loss, acc = test(self.model, self.test_loader)
-        return float(loss), len(self.test_data), {
-            "loss": float(loss),
-            "accuracy": float(acc),
-            "phase": "eval",
-            "logical_client_id": self.client_id_numeric
-        }
+        return float(loss), len(self.test_data), {"accuracy": float(acc), "logical_client_id": self.client_id_numeric}
 
 
 def main():
-    # This function is fine, no changes needed
     parser = argparse.ArgumentParser()
     parser.add_argument("--cid", type=str, required=True, help="Client ID (e.g., client1, client2)")
     args = parser.parse_args()
