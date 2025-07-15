@@ -116,39 +116,42 @@ class FlowerClient(fl.client.NumPyClient):
     def fit(self, parameters, config):
         self.set_parameters(parameters)
 
-        # --- START of CHANGE: Different logic for target vs. honest clients ---
         gradient_inversion_params = self.attack_config.get("gradient_inversion", {})
         is_dlg_target = (gradient_inversion_params.get("enable", False) and
                          self.client_id_numeric == gradient_inversion_params.get("target_client"))
 
         if is_dlg_target:
-            # DLG TARGET CLIENT: Train on ONE batch to create a leaky gradient.
-            print(f"Client {self.client_id_numeric}: Acting as DLG target. Training on one batch.")
+            print(f"Client {self.client_id_numeric}: Acting as DLG target. Sending raw gradients.")
             
-            initial_params = get_parameters(self.model)
-            
-            # Use a batch size of 1 for the attack, regardless of config
             single_batch_loader = DataLoader(self.train_data_subset, batch_size=1, shuffle=True)
-            data_batch = next(iter(single_batch_loader))
+            data, target = next(iter(single_batch_loader))
 
-            # Save the data needed for the server-side attack
+            self.model.train()
+            criterion = torch.nn.CrossEntropyLoss()
+            
+            output = self.model(data)
+            loss = criterion(output, target)
+            
+            gradients = torch.autograd.grad(loss, self.model.parameters())
+            gradients_as_numpy = [grad.cpu().numpy() for grad in gradients]
+
+            # Create the metrics dictionary AND add the client ID
+            metrics = {
+                "loss": loss.item(), 
+                "accuracy": 0.0,
+                "phase": "train",
+                "logical_client_id": self.client_id_numeric # <-- ADDED HERE
+            }
+            
             os.makedirs("client_data", exist_ok=True)
             data_to_save = {
-                'initial_params': initial_params,
-                'data_batch': data_batch[0].cpu().numpy(),
-                'target_batch': data_batch[1].cpu().numpy()
+                'data_batch': data.cpu().numpy(),
+                'target_batch': target.cpu().numpy()
             }
             with open(f"client_data/client_{self.client_id_numeric}_data.pkl", 'wb') as f:
                 pickle.dump(data_to_save, f)
 
-            # Perform training on only that single batch
-            loss, correct, total = train_single_batch(
-                self.model, data_batch, self.config["clients"]["learning_rate"]
-            )
-            
-            num_examples = total
-            accuracy = correct / total
-            metrics = {"loss": float(loss), "accuracy": float(accuracy)}
+            return gradients_as_numpy, 1, metrics
 
         else:
             # HONEST CLIENT: Perform full local training.
@@ -159,14 +162,17 @@ class FlowerClient(fl.client.NumPyClient):
                 lr=self.config["clients"]["learning_rate"]
             )
             num_examples = len(self.train_loader.dataset)
-            metrics = {"loss": float(loss), "accuracy": float(accuracy)}
 
-        # Add common metrics
-        metrics["phase"] = "train"
-        metrics["logical_client_id"] = self.client_id_numeric
-        
-        return self.get_parameters({}), num_examples, metrics
-        # --- END of CHANGE ---
+            # Create the metrics dictionary AND add the client ID
+            metrics = {
+                "loss": float(loss), 
+                "accuracy": float(accuracy),
+                "phase": "train",
+                "logical_client_id": self.client_id_numeric # <-- ADDED HERE
+            }
+            
+            return self.get_parameters({}), num_examples, metrics
+
 
     def evaluate(self, parameters, config):
         self.set_parameters(parameters)

@@ -19,8 +19,8 @@ attacks:
     target_client: 1
     type: "dlg"
     client_lr: 0.01
-    attack_lr: 0.1
-    iterations: 1000
+    attack_lr: 0.01
+    iterations: 2000
 
   model_poisoning:
     enable: false

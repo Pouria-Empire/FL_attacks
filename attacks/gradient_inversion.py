@@ -3,48 +3,68 @@ import torch
 import numpy as np
 from typing import Tuple
 
+# In attacks/gradient_inversion.py
+
 def dlg_attack(
-    gradients: list,            # [grad_W, grad_b] from the victim
-    input_shape: Tuple[int],    # (1,1,28,28)
-    output_shape: Tuple[int],   # (1,10)
+    gradients: list,            # [grad_fc1_w, grad_fc1_b, grad_fc2_w, grad_fc2_b]
+    input_shape: Tuple[int],    # (1, 1, 28, 28)
     lr: float = 0.1,
     iterations: int = 1000,
 ) -> np.ndarray:
-    # === target gradients we want to reproduce ===============================
-    tgt_grad_W = torch.from_numpy(gradients[0]).float()      # (64, 784)
-    tgt_grad_b = torch.from_numpy(gradients[1]).float()      # (64,)
+    
+    # --- We expect gradients from ALL layers now ---
+    # gradients[0] = fc1.weight, gradients[1] = fc1.bias
+    # gradients[2] = fc2.weight, gradients[3] = fc2.bias
+    original_dy_dx = [torch.from_numpy(g).float() for g in gradients]
 
-    out_dim, in_dim = tgt_grad_W.shape
+    # --- Dummy data and model parameters ---
+    dummy_data = torch.randn(input_shape, requires_grad=True)
+    
+    # The BIG CHANGE: Instead of a dummy label, we create dummy logits
+    # that we can optimize. This lets the attack find the correct label.
+    dummy_logits = torch.randn((1, 10), requires_grad=True) # MNIST has 10 classes
 
-    # === dummy model parameters (just for gradient calculation) ==============
-    W = torch.randn(out_dim, in_dim, requires_grad=True)     # (64, 784)
-    b = torch.randn(out_dim,              requires_grad=True)  # (64,)
+    # Use a dummy model that matches the client's SimpleNN architecture
+    dummy_model = torch.nn.Sequential(
+        torch.nn.Linear(784, 64),
+        torch.nn.ReLU(),
+        torch.nn.Linear(64, 10)
+    )
+    
+    # We only need the parameters for gradient calculation, so we can just use the
+    # list of gradients we already have to get their shapes.
+    dummy_params = list(dummy_model.parameters())
 
-    # === what we are trying to recover =======================================
-    dummy_data  = torch.randn(input_shape, requires_grad=True)
-    dummy_label = torch.randint(0, output_shape[1], (1,))    # class index
+    # --- Optimizer ---
+    # We now optimize BOTH the dummy_data and the dummy_logits
+    optimizer = torch.optim.Adam([dummy_data, dummy_logits], lr=lr)
 
-    opt = torch.optim.Adam([dummy_data], lr=lr)
+    for it in range(iterations):
+        optimizer.zero_grad()
 
-    for _ in range(iterations):
-        opt.zero_grad()
+        # Reshape dummy data for the linear layer
+        dummy_data_flat = dummy_data.view(1, -1)
+        
+        # Forward pass through our dummy model to get gradients
+        # We use our learnable dummy_logits as the output
+        dummy_pred = dummy_model(dummy_data_flat)
+        loss_cls = torch.nn.functional.cross_entropy(dummy_pred, dummy_logits.softmax(dim=-1))
+        
+        # Calculate gradients w.r.t. model parameters
+        dy_dx = torch.autograd.grad(loss_cls, dummy_params, create_graph=True)
 
-        # forward
-        logits = torch.matmul(dummy_data.view(1, -1), W.t()) + b
-        loss_cls = torch.nn.functional.cross_entropy(logits, dummy_label)
-
-        # gradients w.r.t. *model parameters*
-        grad_W, grad_b = torch.autograd.grad(
-            loss_cls, [W, b], create_graph=True
-        )
-
-        # gradient‑matching loss
-        grad_loss = torch.nn.functional.mse_loss(grad_W, tgt_grad_W) + \
-                    torch.nn.functional.mse_loss(grad_b, tgt_grad_b)
-
+        # --- The Gradient Matching Loss ---
+        grad_loss = 0
+        for gx, gy in zip(original_dy_dx, dy_dx):
+            grad_loss += ((gx - gy) ** 2).sum()
+        
         grad_loss.backward()
-        opt.step()
+        optimizer.step()
 
+        if it % 500 == 0:
+            print(f"Iteration {it}/{iterations}, Grad Loss: {grad_loss.item():.4f}")
+
+    # Return the optimized data
     return dummy_data.detach().numpy()
 
 def mdlg_attack(gradients: list, input_shape: Tuple[int],
