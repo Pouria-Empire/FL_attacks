@@ -15,9 +15,9 @@ data:
 
 attacks:
   gradient_inversion:
-    enable: false     # <-- ATTACK IS DISABLED
+    enable: true     # <-- ATTACK IS DISABLED
     target_client: 1
-    type: "mdlg"   # <-- mdlg, dlg (actually idlg)
+    type: "ggl"   # <-- mdlg, dlg, ggl (actually idlg)
     client_lr: 0.01
     attack_lr: 0.01
     iterations: 5000
@@ -30,7 +30,7 @@ attacks:
     noise_scale: 0.5       # Used only for "noise" attack
 
   data_poisoning:
-    enable: true
+    enable: false
     malicious_clients: [2]
     target_label: 7        # The label to which poisoned images will be flipped
     poison_frac: 0.5       # Poison 50% of the malicious client's data
