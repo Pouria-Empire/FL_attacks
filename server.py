@@ -15,7 +15,9 @@ import pickle
 from model import SimpleNN
 from utils import get_parameters, load_data
 from attacks.gradient_inversion import dlg_attack, mdlg_attack
+from attacks.ggl_attack import ggl_attack
 from attacks.data_poisoning import PoisonedDataset
+
 
 def load_config() -> Dict[str, Any]:
     """Load the YAML configuration file."""
@@ -44,15 +46,13 @@ def test(model: torch.nn.Module, test_loader: torch.utils.data.DataLoader) -> Tu
     return avg_loss, accuracy
 
 def safe_metrics_aggregation(metrics: List[Tuple[int, Dict[str, Scalar]]]) -> Dict[str, Scalar]:
-    """A safe way to aggregate metrics, ignoring missing keys."""
+    """A safe way to aggregate metrics from clients."""
     aggregated = {}
-    # Aggregate custom backdoor ASR metric
     if any("backdoor_asr" in m for _, m in metrics):
         aggregated["backdoor_asr"] = sum(m["backdoor_asr"] for _, m in metrics if "backdoor_asr" in m) / len(metrics)
 
-    # Aggregate standard evaluation accuracy
     if any("accuracy" in m for _, m in metrics):
-         aggregated["accuracy"] = sum(m["accuracy"] for _, m in metrics if "accuracy" in m) / len(metrics)
+         aggregated["accuracy"] = sum(m.get("accuracy", 0.0) for _, m in metrics) / len([m for _, m in metrics if "accuracy" in m])
 
     print("\n[Round Metrics]")
     if "accuracy" in aggregated:
@@ -78,15 +78,12 @@ class SecureFedAvg(FedAvg):
         """Aggregate results and perform gradient inversion if enabled."""
         gi_params = self.attack_config.get("gradient_inversion", {})
         if not gi_params.get("enable", False):
-            # If GI is not enabled, just do standard aggregation
             return super().aggregate_fit(server_round, results, failures)
 
-        # Gradient Inversion logic
         target_client_id = gi_params.get("target_client", 1)
         target_fit_res = None
         honest_clients_results = []
         for client, fit_res in results:
-            # The client sends a specific metric if it's a GI target
             if fit_res.metrics.get("attack") == "gradient_inversion":
                 target_fit_res = fit_res
             else:
@@ -98,14 +95,20 @@ class SecureFedAvg(FedAvg):
                 gradients = parameters_to_ndarrays(target_fit_res.parameters)
                 reconstructed = self._reconstruct_data(gradients, gi_params)
                 if reconstructed is not None:
-                    # You would need to fetch original data if you want a comparison image
-                    self._save_reconstruction(reconstructed, target_client_id, server_round)
+                    original_data, original_label = None, None
+                    data_path = f"client_data/client_{target_client_id}_data.pkl"
+                    if os.path.exists(data_path):
+                        with open(data_path, "rb") as f:
+                            saved_data = pickle.load(f)
+                        original_data, original_label = saved_data['data'], saved_data['label']
+                        os.remove(data_path)
+                    
+                    self._save_reconstruction(reconstructed, target_client_id, server_round, original_data, original_label)
             except Exception as e:
                 print(f"[Attack Failed] Gradient Inversion error: {str(e)}")
         
-        # Aggregate only the updates from honest clients
         if not honest_clients_results:
-            return None # No honest clients to aggregate, return current parameters
+            return None
         
         return super().aggregate_fit(server_round, honest_clients_results, failures)
 
@@ -115,32 +118,41 @@ class SecureFedAvg(FedAvg):
         print(f"[Attack] Attempting reconstruction using '{attack_type}' method.")
 
         if attack_type == "dlg":
-            return dlg_attack(
-                gradients=gradients,
-                input_shape=(1, 1, 28, 28),
-                lr=attack_params.get("attack_lr", 0.01),
-                iterations=attack_params.get("iterations", 5000)
-            )
+            return dlg_attack(gradients=gradients, input_shape=(1, 1, 28, 28), lr=attack_params.get("attack_lr", 0.01), iterations=attack_params.get("iterations", 5000))
         elif attack_type == "mdlg":
-            return mdlg_attack(
-                gradients=[gradients[0]], 
-                input_shape=(1, 1, 28, 28),
-                lr=attack_params.get("attack_lr", 0.01),
-                iterations=attack_params.get("iterations", 500)
-            )
+            return mdlg_attack(gradients=[gradients[0]], input_shape=(1, 1, 28, 28), lr=attack_params.get("attack_lr", 0.01), iterations=attack_params.get("iterations", 500))
+        elif attack_type == "ggl":
+            return ggl_attack(gradients=gradients, lr=attack_params.get("attack_lr", 0.1), iterations=attack_params.get("iterations", 2000))
         else:
             print(f"Unknown reconstruction attack type: {attack_type}")
             return None
 
-    def _save_reconstruction(self, data: np.ndarray, client_id: int, round_num: int):
-        """Save the reconstructed image."""
+    def _save_reconstruction(self, data: np.ndarray, client_id: int, round_num: int, original_data: Optional[np.ndarray] = None, original_label: Optional[np.ndarray] = None):
+        """Save the reconstructed image and a comparison if original data is available."""
         img_array = data
         img = (img_array - img_array.min()) / (img_array.max() - img_array.min())
         img = (img * 255).astype(np.uint8).squeeze()
         
-        recon_path = f"{self.reconstruction_dir}/reconstruction_client{client_id}_round{round_num}.png"
-        Image.fromarray(img).save(recon_path)
-        print(f"[Attack] Saved reconstruction to {recon_path}")
+        if original_data is not None and original_label is not None:
+            plt.figure(figsize=(10, 5))
+            plt.subplot(1, 2, 1)
+            plt.imshow(original_data.squeeze(), cmap='gray')
+            plt.title(f"Original (Label: {original_label[0]})")
+            plt.axis('off')
+            
+            plt.subplot(1, 2, 2)
+            plt.imshow(img, cmap='gray')
+            plt.title("Reconstructed")
+            plt.axis('off')
+            
+            comp_path = f"{self.reconstruction_dir}/comparison_client{client_id}_round{round_num}.png"
+            plt.savefig(comp_path)
+            plt.close()
+            print(f"[Attack] Saved comparison to {comp_path}")
+        else:
+            recon_path = f"{self.reconstruction_dir}/reconstruction_client{client_id}_round{round_num}.png"
+            Image.fromarray(img).save(recon_path)
+            print(f"[Attack] Saved reconstruction to {recon_path}")
 
 
 def evaluate_backdoor(server_round: int, parameters: List[np.ndarray], config: Dict[str, Scalar]) -> Optional[Tuple[float, Dict[str, Scalar]]]:
@@ -150,23 +162,12 @@ def evaluate_backdoor(server_round: int, parameters: List[np.ndarray], config: D
         return None 
 
     model = SimpleNN()
-    
-    # The 'parameters' variable is already a list of numpy arrays, so we pass it directly
-    set_parameters(model, parameters) # <-- REMOVED parameters_to_ndarrays()
-    
+    set_parameters(model, parameters)
     _, test_data = load_data("./data")
 
-    backdoor_test_set = PoisonedDataset(
-        dataset=test_data,
-        poison_frac=1.0,
-        target_label=attack_config.get("target_label", 0)
-    )
+    backdoor_test_set = PoisonedDataset(dataset=test_data, poison_frac=1.0, target_label=attack_config.get("target_label", 0))
     backdoor_loader = torch.utils.data.DataLoader(backdoor_test_set, batch_size=64)
-    
     loss, accuracy = test(model, backdoor_loader)
-    
-    # The print statement was moved to the metrics aggregation function
-    # to avoid printing during the initial server evaluation round.
     
     return loss, {"backdoor_asr": accuracy}
 
@@ -181,9 +182,8 @@ def main():
         min_fit_clients=config["server"]["min_clients"],
         min_evaluate_clients=config["server"]["min_clients"],
         min_available_clients=config["server"]["min_clients"],
-        # Use a custom function to aggregate backdoor and standard eval metrics
         evaluate_metrics_aggregation_fn=safe_metrics_aggregation,
-        # Activate the backdoor evaluation after each round
+        fit_metrics_aggregation_fn=safe_metrics_aggregation, # Added to fix warning
         evaluate_fn=evaluate_backdoor, 
     )
     
