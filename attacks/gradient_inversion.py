@@ -86,3 +86,63 @@ def mdlg_attack(gradients: list, input_shape: Tuple[int],
         opt.step()
 
     return dummy_data.detach().numpy()
+
+
+import torch.nn.functional as F
+
+def total_variation_loss(img: torch.Tensor) -> torch.Tensor:
+    """Computes the total variation loss for a batch of images to reduce noise."""
+    bs_img, c_img, h_img, w_img = img.size()
+    tv_h = torch.pow(img[:, :, 1:, :] - img[:, :, :-1, :], 2).sum()
+    tv_w = torch.pow(img[:, :, :, 1:] - img[:, :, :, :-1], 2).sum()
+    return (tv_h + tv_w) / (bs_img * c_img * h_img * w_img)
+
+def gradinversion_attack(
+    gradients: List[np.ndarray],
+    batch_size: int,
+    input_shape: Tuple[int, int, int] = (1, 28, 28),
+    lr: float = 0.1,
+    iterations: int = 5000
+) -> np.ndarray:
+    """
+    Performs a GradInversion attack to reconstruct a batch of images.
+    Implements Batch Label Restoration and Fidelity Regularization from the paper.
+    """
+    # 1. Batch Label Restoration (from paper Section 3.2)
+    # Assumes the second to last gradient is from the final FC layer's weights
+    fc_grad = torch.from_numpy(gradients[-2]).float()
+    predicted_labels = torch.topk(fc_grad.sum(dim=1), k=batch_size, largest=False)[1]
+    print(f"[Attack] Recovered labels: {predicted_labels.numpy()}")
+
+    # 2. Initialize dummy data for the entire batch
+    dummy_data = torch.randn(batch_size, *input_shape, requires_grad=True)
+    optimizer = torch.optim.Adam([dummy_data], lr=lr)
+    
+    original_dy_dx = [torch.from_numpy(g).float() for g in gradients]
+    dummy_model = torch.nn.Sequential(
+        torch.nn.Linear(784, 64),
+        torch.nn.ReLU(),
+        torch.nn.Linear(64, 10)
+    )
+
+    for it in range(iterations):
+        optimizer.zero_grad()
+        
+        # 3. Calculate Gradient Matching Loss for the batch
+        dummy_pred = dummy_model(dummy_data.view(batch_size, -1))
+        loss_cls = F.cross_entropy(dummy_pred, predicted_labels)
+        dy_dx = torch.autograd.grad(loss_cls, list(dummy_model.parameters()), create_graph=True)
+        grad_loss = sum(((gx - gy) ** 2).sum() for gx, gy in zip(original_dy_dx, dy_dx))
+
+        # 4. Add Fidelity Regularization (from paper Section 3.3)
+        tv_loss = total_variation_loss(dummy_data)
+        
+        # 5. Combine losses and update
+        total_loss = grad_loss + 1e-4 * tv_loss
+        total_loss.backward()
+        optimizer.step()
+
+        if it % 1000 == 0:
+            print(f"Iteration {it}/{iterations}, Grad Loss: {grad_loss.item():.4f}")
+
+    return dummy_data.detach().numpy()
