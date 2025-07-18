@@ -5,7 +5,7 @@ server:
 
 clients:
   total: 2
-  batch_size: 64      # Batch size for all clients
+  batch_size: 8      # Batch size for all clients
   local_epochs: 1     # Clients train for 1 full epoch on their data
   learning_rate: 0.01
 
@@ -17,10 +17,13 @@ attacks:
   gradient_inversion:
     enable: true     # <-- ATTACK IS DISABLED
     target_client: 1
-    type: "ggl"   # <-- mdlg, dlg, ggl (actually idlg)
+    type: "gradinversion_plus"   # <-- mdlg, dlg, ggl,gradinversion (actually idlg)
     client_lr: 0.01
     attack_lr: 0.01
     iterations: 5000
+    num_seeds: 4
+    reg_tv: 0.0001            # <-- Control TV regularization
+    reg_group: 0.005          # <-- Control group regularizatio
 
   model_poisoning:
     enable: false
