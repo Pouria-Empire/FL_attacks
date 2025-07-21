@@ -11,9 +11,16 @@ import torch
 import torchvision
 import pickle
 
+from skimage.metrics import peak_signal_noise_ratio as psnr
+from skimage.metrics import structural_similarity as ssim
+from skimage.metrics import mean_squared_error as mse
+from scipy.spatial import distance
+
 from model import SimpleNN
 from utils import get_parameters, load_data
+from attacks.gradient_inversion import gradinversion_attack, dlg_attack, mdlg_attack
 from attacks.gradinversion_plus import gradinversion_group_attack
+from attacks.ggl_attack import ggl_attack
 from attacks.data_poisoning import PoisonedDataset
 
 def load_config() -> Dict[str, Any]:
@@ -30,8 +37,7 @@ def test(model: torch.nn.Module, test_loader: torch.utils.data.DataLoader) -> Tu
     correct, total_loss = 0, 0.0
     with torch.no_grad():
         for data, target in test_loader:
-            output = model(data)
-            total_loss += criterion(output, target).item()
+            output = model(data); total_loss += criterion(output, target).item()
             pred = output.argmax(dim=1); correct += pred.eq(target).sum().item()
     return total_loss / len(test_loader.dataset), correct / len(test_loader.dataset)
 
@@ -45,6 +51,28 @@ def safe_metrics_aggregation(metrics: List[Tuple[int, Dict[str, Scalar]]]) -> Di
     if "accuracy" in aggregated: print(f"Eval Accuracy: {aggregated['accuracy']*100:.2f}%")
     if "backdoor_asr" in aggregated: print(f"Attack Success Rate (ASR): {aggregated['backdoor_asr']*100:.2f}%")
     return aggregated
+
+def evaluate_reconstruction(original_batch: np.ndarray, recon_batch: np.ndarray):
+    psnr_scores, ssim_scores, mse_scores, cos_sims = [], [], [], []
+    noise_batch, ssim_noise_scores = np.random.rand(*original_batch.shape), []
+    for i in range(original_batch.shape[0]):
+        original_img, recon_img, noise_img = original_batch[i].squeeze(), recon_batch[i].squeeze(), noise_batch[i].squeeze()
+        data_range = original_img.max() - original_img.min()
+        psnr_scores.append(psnr(original_img, recon_img, data_range=data_range))
+        ssim_scores.append(ssim(original_img, recon_img, data_range=data_range))
+        mse_scores.append(mse(original_img, recon_img))
+        cos_sims.append(1 - distance.cosine(original_img.flatten(), recon_img.flatten()))
+        ssim_noise_scores.append(ssim(original_img, noise_img, data_range=data_range))
+    avg_psnr, avg_ssim, avg_mse, avg_cos_sim = np.mean(psnr_scores), np.mean(ssim_scores), np.mean(mse_scores), np.mean(cos_sims)
+    avg_ssim_noise = np.mean(ssim_noise_scores)
+    rdlv = (avg_ssim - avg_ssim_noise) / (1 - avg_ssim_noise) if (1 - avg_ssim_noise) != 0 else 0
+    print("\n--- Reconstruction Quality Metrics ---")
+    print(f"  MSE (↓ is better):      {avg_mse:.4f}")
+    print(f"  PSNR (↑ is better):     {avg_psnr:.2f} dB")
+    print(f"  SSIM (↑ is better):     {avg_ssim:.4f}")
+    print(f"  Cosine Sim (↑ is better):{avg_cos_sim:.4f}")
+    print(f"  RDLV (↑ is better):     {rdlv:.4f}")
+    print("------------------------------------")
 
 class SecureFedAvg(FedAvg):
     def __init__(self, attack_config: Dict[str, Any], client_config: Dict[str, Any], *args, **kwargs):
@@ -77,7 +105,10 @@ class SecureFedAvg(FedAvg):
                 gradients = parameters_to_ndarrays(target_fit_res.parameters)
                 reconstruction_result = self._reconstruct_data(gradients, gi_params)
                 if reconstruction_result is not None:
-                    reconstructed_images, predicted_labels = reconstruction_result
+                    if isinstance(reconstruction_result, tuple):
+                        reconstructed_images, predicted_labels = reconstruction_result
+                    else:
+                        reconstructed_images, predicted_labels = reconstruction_result, None
                     original_data, original_labels = None, None
                     data_path = f"client_data/client_{target_client_id}_data.pkl"
                     if os.path.exists(data_path):
@@ -85,33 +116,56 @@ class SecureFedAvg(FedAvg):
                             saved_data = pickle.load(f)
                         original_data, original_labels = saved_data['data'], saved_data['label']
                         os.remove(data_path)
-                    
-                    # --- THE FIX: Use 'target_client_id' instead of 'client_id' ---
+                    if original_data is not None:
+                        evaluate_reconstruction(original_data, reconstructed_images)
                     self._save_reconstruction(reconstructed_images, predicted_labels, target_client_id, server_round, original_data, original_labels)
-                    
             except Exception as e:
                 print(f"[Attack Failed] Gradient Inversion error: {str(e)}")
         
         if not honest_clients_results: return None
         return super().aggregate_fit(server_round, honest_clients_results, failures)
 
-    def _reconstruct_data(self, gradients: List[np.ndarray], attack_params: Dict) -> Optional[Tuple[np.ndarray, torch.Tensor]]:
+    def _reconstruct_data(self, gradients: List[np.ndarray], attack_params: Dict):
         attack_type = attack_params.get("type", "dlg")
         print(f"[Attack] Attempting reconstruction using '{attack_type}' method.")
         if attack_type == "gradinversion_plus":
-            return gradinversion_group_attack(gradients=gradients, batch_size=self.client_config.get("batch_size", 8), num_seeds=attack_params.get("num_seeds", 4), lr=attack_params.get("attack_lr"), iterations=attack_params.get("iterations"), reg_tv=attack_params.get("reg_tv", 1e-4), reg_group=attack_params.get("reg_group", 0.005))
-        return None
+            return gradinversion_group_attack(gradients=gradients, batch_size=self.client_config.get("batch_size", 8), num_seeds=attack_params.get("num_seeds", 4), lr=attack_params.get("attack_lr"), iterations=attack_params.get("iterations"), reg_tv=attack_params.get("reg_tv", 1e-4), reg_l2=attack_params.get("reg_l2", 1e-5), reg_group=attack_params.get("reg_group", 0.005))
+        elif attack_type == "gradinversion":
+            return gradinversion_attack(gradients=gradients, batch_size=self.client_config.get("batch_size", 8), lr=attack_params.get("attack_lr"), iterations=attack_params.get("iterations"))
+        elif attack_type == "ggl":
+            return ggl_attack(gradients=gradients, lr=attack_params.get("attack_lr"), iterations=attack_params.get("iterations"))
+        
+        # --- FIX: ADD THESE BLOCKS BACK ---
+        elif attack_type == "dlg":
+            return dlg_attack(
+                gradients=gradients,
+                input_shape=(1, 1, 28, 28), # Add missing shape
+                lr=attack_params.get("attack_lr"),
+                iterations=attack_params.get("iterations")
+            )
+        elif attack_type == "mdlg":
+            return mdlg_attack(
+                gradients=gradients,
+                input_shape=(1, 1, 28, 28), # Add missing shape
+                lr=attack_params.get("attack_lr"),
+                iterations=attack_params.get("iterations")
+            )
+        # --- END OF FIX ---
+        
+        else:
+            print(f"Unknown reconstruction attack type: {attack_type}")
+            return None
 
-    def _save_reconstruction(self, data: np.ndarray, predicted_labels: torch.Tensor, client_id: int, round_num: int, original_data: Optional[np.ndarray] = None, original_labels: Optional[np.ndarray] = None):
+    def _save_reconstruction(self, data: np.ndarray, predicted_labels: Optional[torch.Tensor], client_id: int, round_num: int, original_data: Optional[np.ndarray] = None, original_labels: Optional[np.ndarray] = None):
         recon_tensor = torch.from_numpy(data)
         if original_data is not None and original_labels is not None:
-            original_tensor = torch.from_numpy(original_data)
-            original_labels_tensor = torch.from_numpy(original_labels)
-            
-            sort_indices = torch.argsort(original_labels_tensor)
-            original_tensor_sorted = original_tensor[sort_indices]
-            
-            comparison_grid = torch.cat([original_tensor_sorted, recon_tensor])
+            original_tensor, original_labels_tensor = torch.from_numpy(original_data), torch.from_numpy(original_labels)
+            if predicted_labels is not None:
+                sort_indices = torch.argsort(original_labels_tensor)
+                original_tensor_sorted = original_tensor[sort_indices]
+                comparison_grid = torch.cat([original_tensor_sorted, recon_tensor])
+            else:
+                comparison_grid = torch.cat([original_tensor, recon_tensor])
             save_path = f"{self.reconstruction_dir}/comparison_client{client_id}_round{round_num}.png"
             torchvision.utils.save_image(comparison_grid, save_path, nrow=original_tensor.size(0))
             print(f"[Attack] Saved comparison grid to {save_path}")

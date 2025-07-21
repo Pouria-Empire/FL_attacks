@@ -1,6 +1,6 @@
 server:
   address: "0.0.0.0:8080"
-  rounds: 3
+  rounds: 20
   min_clients: 2
 
 clients:
@@ -17,10 +17,10 @@ attacks:
   gradient_inversion:
     enable: true     # <-- ATTACK IS DISABLED
     target_client: 1
-    type: "gradinversion_plus"   # <-- mdlg, dlg, ggl,gradinversion (actually idlg)
+    type: "mdlg"   # <-- mdlg, dlg, ggl,gradinversion_plus (actually idlg)
     client_lr: 0.01
     attack_lr: 0.01
-    iterations: 5000
+    iterations: 1000
     num_seeds: 4
     reg_tv: 0.0001            # <-- Control TV regularization
     reg_group: 0.005          # <-- Control group regularizatio
