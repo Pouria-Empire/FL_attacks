@@ -11,15 +11,23 @@ def dlg_attack(
 ) -> np.ndarray:
     
     original_dy_dx = [torch.from_numpy(g).float() for g in gradients]
-    dummy_data = torch.randn(input_shape, requires_grad=True)
+    
+    # --- THE FIX: Optimize a "pre-image" and apply sigmoid ---
+    dummy_data_pre_sigmoid = torch.randn(input_shape, requires_grad=True)
     dummy_logits = torch.randn((1, 10), requires_grad=True)
+    optimizer = torch.optim.Adam([dummy_data_pre_sigmoid, dummy_logits], lr=lr)
+    # ---
+
     dummy_model = torch.nn.Sequential(
         torch.nn.Linear(784, 64), torch.nn.ReLU(), torch.nn.Linear(64, 10)
     )
-    optimizer = torch.optim.Adam([dummy_data, dummy_logits], lr=lr)
 
     for it in range(iterations):
         optimizer.zero_grad()
+
+        # Apply sigmoid to constrain the image to the [0, 1] range
+        dummy_data = torch.sigmoid(dummy_data_pre_sigmoid)
+
         dummy_pred = dummy_model(dummy_data.view(1, -1))
         loss_cls = F.cross_entropy(dummy_pred, dummy_logits.softmax(dim=-1))
         dy_dx = torch.autograd.grad(loss_cls, list(dummy_model.parameters()), create_graph=True)
@@ -29,7 +37,8 @@ def dlg_attack(
         if it % 500 == 0:
             print(f"Iteration {it}/{iterations}, Grad Loss: {grad_loss.item():.4f}")
 
-    return dummy_data.detach().numpy()
+    # Return the final constrained image
+    return torch.sigmoid(dummy_data_pre_sigmoid).detach().numpy()
 
 
 def mdlg_attack(
@@ -40,11 +49,15 @@ def mdlg_attack(
 ) -> np.ndarray:
     tgt_grad_W = torch.from_numpy(gradients[0]).float()
     W = torch.randn_like(tgt_grad_W, requires_grad=True)
-    dummy_data = torch.randn(input_shape, requires_grad=True)
-    opt = torch.optim.Adam([dummy_data], lr=lr)
+    
+    # This version already includes the sigmoid fix
+    dummy_data_pre_sigmoid = torch.randn(input_shape, requires_grad=True)
+    opt = torch.optim.Adam([dummy_data_pre_sigmoid], lr=lr)
 
     for _ in range(iterations):
         opt.zero_grad()
+        dummy_data = torch.sigmoid(dummy_data_pre_sigmoid)
+        
         logits = torch.matmul(dummy_data.view(1, -1), W.t())
         loss = logits.norm()
         grad_W, = torch.autograd.grad(loss, [W], create_graph=True)
@@ -52,7 +65,8 @@ def mdlg_attack(
         grad_loss.backward()
         opt.step()
 
-    return dummy_data.detach().numpy()
+    return torch.sigmoid(dummy_data_pre_sigmoid).detach().numpy()
+
 
 def total_variation_loss(img: torch.Tensor) -> torch.Tensor:
     bs_img, c_img, h_img, w_img = img.size()
@@ -90,4 +104,5 @@ def gradinversion_attack(
 
         if it % 1000 == 0:
             print(f"Iteration {it}/{iterations}, Grad Loss: {grad_loss.item():.4f}")
+            
     return dummy_data.detach().numpy(), predicted_labels

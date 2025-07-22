@@ -1,6 +1,6 @@
 server:
   address: "0.0.0.0:8080"
-  rounds: 20
+  rounds: 3
   min_clients: 2
 
 clients:
@@ -15,15 +15,22 @@ data:
 
 attacks:
   gradient_inversion:
-    enable: true     # <-- ATTACK IS DISABLED
+    enable: true
     target_client: 1
-    type: "mdlg"   # <-- mdlg, dlg, ggl,gradinversion_plus (actually idlg)
+    type: "gradinversion_plus"   # <-- mdlg, dlg, ggl,gradinversion_plus (actually idlg)
     client_lr: 0.01
-    attack_lr: 0.01
+    # The learning rate for the attack's optimizer. Lower values (e.g., 0.01) are more stable.
+    attack_lr: 0.05
+    # The total number of optimization steps for the attack.
     iterations: 1000
+    # The number of parallel reconstructions to run for group consistency.
     num_seeds: 4
-    reg_tv: 0.0001            # <-- Control TV regularization
-    reg_group: 0.005          # <-- Control group regularizatio
+    # The strength of the Total Variation regularization (reduces noise).
+    reg_tv: 0.0001
+    # The strength of the L2 norm regularization (stabilizes pixel values).
+    reg_l2: 0.00001
+    # The strength of the group consistency regularization (improves clarity).
+    reg_group: 0.005
 
   model_poisoning:
     enable: false
@@ -37,3 +44,20 @@ attacks:
     malicious_clients: [2]
     target_label: 7        # The label to which poisoned images will be flipped
     poison_frac: 0.5       # Poison 50% of the malicious client's data
+
+mitigations:
+  enable: true
+  defense_type: "encryption" # Choose: "none", "clipping", "sparsification", "dp", "encryption"
+
+  clipping_params:
+    clipping_norm: 2.0
+  
+  sparsification_params:
+    sparsity: 0.1 # Keep top 10%
+  
+  dp_params:
+    clipping_norm: 1.5
+    noise_multiplier: 0.5
+  
+  encryption_params:
+    encryption_delay: 5.0 # Seconds to pause to simulate encryption overhead

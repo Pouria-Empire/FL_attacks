@@ -17,8 +17,9 @@ def gradinversion_group_attack(
     lr: float = 0.01,
     iterations: int = 5000,
     reg_tv: float = 1e-4,
+    reg_l2: float = 1e-5,
     reg_group: float = 0.005
-) -> Tuple[np.ndarray, torch.Tensor]: # <-- Return a tuple
+) -> Tuple[np.ndarray, torch.Tensor]:
     
     fc_grad = torch.from_numpy(gradients[-2]).float()
     predicted_labels = torch.topk(fc_grad.sum(dim=1), k=batch_size, largest=False)[1]
@@ -28,8 +29,13 @@ def gradinversion_group_attack(
     optimizer = torch.optim.Adam(candidate_batches, lr=lr)
     
     original_dy_dx = [torch.from_numpy(g).float() for g in gradients]
+    
+    # --- THE FIX: Make the dummy_model perfectly match the client's SimpleNN ---
     dummy_model = torch.nn.Sequential(
-        torch.nn.Linear(784, 64), torch.nn.ReLU(), torch.nn.Linear(64, 10)
+        torch.nn.Linear(784, 64), 
+        torch.nn.ReLU(), 
+        torch.nn.Linear(64, 10),
+        torch.nn.LogSoftmax(dim=1) # <-- ADD THIS LAYER
     )
 
     for it in range(iterations):
@@ -39,12 +45,16 @@ def gradinversion_group_attack(
 
         for dummy_data in candidate_batches:
             dummy_pred = dummy_model(dummy_data.view(batch_size, -1))
-            loss_cls = F.cross_entropy(dummy_pred, predicted_labels)
+            # Use NLLLoss for LogSoftmax output
+            loss_cls = F.nll_loss(dummy_pred, predicted_labels)
             dy_dx = torch.autograd.grad(loss_cls, dummy_model.parameters(), create_graph=True)
+            
             grad_loss = sum(((gx - gy) ** 2).sum() for gx, gy in zip(original_dy_dx, dy_dx))
             tv_loss = total_variation_loss(dummy_data)
             group_loss = torch.norm(dummy_data - consensus_batch, p=2)
-            batch_total_loss = grad_loss + reg_tv * tv_loss + reg_group * group_loss
+            l2_loss = torch.norm(dummy_data, p=2)
+
+            batch_total_loss = grad_loss + reg_tv * tv_loss + reg_l2 * l2_loss + reg_group * group_loss
             total_loss += batch_total_loss
 
         total_loss.backward()
@@ -54,6 +64,4 @@ def gradinversion_group_attack(
             print(f"Iteration {it}/{iterations}, Total Loss: {total_loss.item():.4f}")
 
     final_consensus = torch.stack(candidate_batches).mean(dim=0)
-    
-    # Return both the images and the labels used to generate them
     return final_consensus.detach().numpy(), predicted_labels
