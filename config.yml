@@ -17,14 +17,14 @@ attacks:
   gradient_inversion:
     enable: true
     target_client: 1
-    type: "gradinversion_plus"   # <-- mdlg, dlg, ggl,gradinversion_plus (actually idlg)
+    type: "ggl"   # <-- mdlg, dlg, ggl,gradinversion_plus (actually idlg)
     client_lr: 0.01
     # The learning rate for the attack's optimizer. Lower values (e.g., 0.01) are more stable.
-    attack_lr: 0.05
+    attack_lr: 0.01
     # The total number of optimization steps for the attack.
-    iterations: 1000
+    iterations: 10000
     # The number of parallel reconstructions to run for group consistency.
-    num_seeds: 4
+    num_seeds: 32
     # The strength of the Total Variation regularization (reduces noise).
     reg_tv: 0.0001
     # The strength of the L2 norm regularization (stabilizes pixel values).
@@ -46,8 +46,8 @@ attacks:
     poison_frac: 0.5       # Poison 50% of the malicious client's data
 
 mitigations:
-  enable: true
-  defense_type: "encryption" # Choose: "none", "clipping", "sparsification", "dp", "encryption"
+  enable: false
+  defense_type: "none" # Choose: "none", "clipping", "sparsification", "dp", "encryption"
 
   clipping_params:
     clipping_norm: 2.0

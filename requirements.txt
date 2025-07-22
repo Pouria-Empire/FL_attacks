@@ -6,3 +6,4 @@ scikit-image
 pycryptodome
 matplotlib
 torchvision
+datasets
