@@ -10,7 +10,7 @@ clients:
   learning_rate: 0.01
 
 data:
-  path: "./data"
+  path: "./data_200"
   train_list: "train_val_list.txt"
   test_list: "test_list.txt"
 
