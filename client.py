@@ -160,7 +160,7 @@ def main():
     args = parser.parse_args()
     config = load_config()
     client = FlowerClient(args.cid, config)
-    fl.client.start_numpy_client(server_address="127.0.0.1:8080", client=client)
+    fl.client.start_numpy_client(server_address="127.0.0.1:8080", client=client,grpc_max_message_length=1024*1024*1024)
 
 if __name__ == "__main__":
     main()

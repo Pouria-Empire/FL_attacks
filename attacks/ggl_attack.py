@@ -39,7 +39,7 @@ def ggl_attack(
     generator = StrongGenerator(latent_dim)
     try:
         # Load the pre-trained X-ray generator model
-        generator.load_state_dict(torch.load("models/strong_xray_generator_final.pth", map_location=torch.device('cpu')))
+        generator.load_state_dict(torch.load("models/strong_xray_generator.pth", map_location=torch.device('cpu')))
     except FileNotFoundError:
         print("🔴 Strong X-ray Generator model not found. Please run the training script first.")
         return None

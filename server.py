@@ -227,6 +227,7 @@ def main():
         server_address=config["server"]["address"],
         config=fl.server.ServerConfig(num_rounds=config["server"]["rounds"]),
         strategy=strategy,
+        grpc_max_message_length=1024*1024*1024
     )
 
 if __name__ == "__main__":
