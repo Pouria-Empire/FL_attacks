@@ -5,7 +5,6 @@ import numpy as np
 from typing import List
 
 # WARNING: This is a hardcoded key for simulation ONLY.
-# In a real system, key management is a critical security challenge.
 SECRET_KEY = b'this_is_a_32_byte_secret_key_!!'
 
 def encrypt_params(params: List[np.ndarray]) -> bytes:

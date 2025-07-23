@@ -28,7 +28,6 @@ def ggl_attack(gradients: List[np.ndarray],
     """
     generator = Generator(latent_dim)
     try:
-        # --- THE FIX: Add map_location='cpu' to load the model correctly ---
         generator.load_state_dict(torch.load("models/generator.pth", map_location=torch.device('cpu')))
     except FileNotFoundError:
         print("🔴 Generator model not found. Please run train_generator.py first.")
@@ -36,14 +35,17 @@ def ggl_attack(gradients: List[np.ndarray],
     generator.eval()
 
     original_dy_dx = [torch.from_numpy(g).float() for g in gradients]
+    
+    # We will optimize for both the latent vector and the correct label (via logits)
     dummy_latent = torch.randn(1, latent_dim, requires_grad=True)
     dummy_logits = torch.randn((1, 10), requires_grad=True)
     
+    # --- THE FIX: Ensure the dummy_model perfectly matches the client's SimpleNN ---
     dummy_model = nn.Sequential(
         nn.Linear(784, 64), 
         nn.ReLU(), 
         nn.Linear(64, 10),
-        nn.LogSoftmax(dim=1)
+        nn.LogSoftmax(dim=1) # <-- This layer is crucial for a correct match
     )
 
     optimizer = torch.optim.Adam([dummy_latent, dummy_logits], lr=lr)
@@ -51,11 +53,17 @@ def ggl_attack(gradients: List[np.ndarray],
     for it in range(iterations):
         optimizer.zero_grad()
         dummy_data = generator(dummy_latent)
+        # Rescale from Tanh's [-1, 1] to the data's [0, 1] range to fix color inversion
         dummy_data = (dummy_data + 1) / 2
 
         dummy_pred = dummy_model(dummy_data.view(1, -1))
+        
+        # Use CrossEntropy, which is stable for this joint optimization
         loss_cls = F.cross_entropy(dummy_pred, dummy_logits.softmax(dim=-1))
+        
         dy_dx = torch.autograd.grad(loss_cls, list(dummy_model.parameters()), create_graph=True)
+        
+        # Use a simple and robust L2 loss for gradient matching
         grad_loss = sum(((gx - gy) ** 2).sum() for gx, gy in zip(original_dy_dx, dy_dx))
         
         grad_loss.backward()

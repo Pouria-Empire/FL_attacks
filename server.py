@@ -9,24 +9,27 @@ import torch
 import pickle
 import torchvision
 
+# Import metrics and defense components
 from skimage.metrics import peak_signal_noise_ratio as psnr, structural_similarity as ssim, mean_squared_error as mse
 from scipy.spatial import distance
 
+# Import your custom modules
 from model import SimpleNN
-from utils import load_data # <-- ONLY load_data is imported from utils
+from utils import load_data
 from attacks.data_poisoning import PoisonedDataset
 from attacks.gradient_inversion import gradinversion_attack, dlg_attack, mdlg_attack
 from attacks.gradinversion_plus import gradinversion_group_attack
 from attacks.ggl_attack import ggl_attack
+from crypto_utils import encrypt_params, decrypt_params
 
-# --- HELPER FUNCTIONS NOW LOCAL TO SERVER ---
+
 def load_config() -> Dict[str, Any]:
     with open("config.yml", "r") as f: return yaml.safe_load(f)
 
 def set_parameters(model: torch.nn.Module, parameters: List[np.ndarray]):
     params_dict = zip(model.state_dict().keys(), parameters)
     state_dict = {k: torch.tensor(v) for k, v in params_dict}
-    model.load_state_dict(state_dict)
+    model.load_state_dict(state_dict, strict=True)
     
 def get_parameters(model: torch.nn.Module) -> List[np.ndarray]:
     return [val.cpu().numpy() for _, val in model.state_dict().items()]
@@ -86,64 +89,91 @@ class SecureFedAvg(FedAvg):
         self.reconstruction_dir = "reconstructions"
         os.makedirs(self.reconstruction_dir, exist_ok=True)
 
+    def initialize_parameters(self, client_manager: fl.server.client_manager.ClientManager) -> Optional[Parameters]:
+        model = SimpleNN()
+        return ndarrays_to_parameters(get_parameters(model))
+
     def configure_fit(self, server_round: int, parameters: Parameters, client_manager: fl.server.client_manager.ClientManager):
         config = {}
         if self.mitigation_config.get("enable", False):
             defense_type = self.mitigation_config.get("defense_type")
             config["defense_type"] = defense_type
-            if defense_type == "clipping": config.update(self.mitigation_config.get("clipping_params", {}))
-            elif defense_type == "sparsification": config.update(self.mitigation_config.get("sparsification_params", {}))
-            elif defense_type == "dp": config.update(self.mitigation_config.get("dp_params", {}))
+            
+            if defense_type == "encryption":
+                print("\n[Mitigation] Encrypting global model for distribution.")
+                params_np = parameters_to_ndarrays(parameters)
+                encrypted_bytes = encrypt_params(params_np)
+                parameters = ndarrays_to_parameters([np.frombuffer(encrypted_bytes, dtype=np.uint8)])
+            elif defense_type != "none":
+                # Pass other defense params to client
+                param_key = f"{defense_type}_params"
+                if param_key in self.mitigation_config:
+                    config.update(self.mitigation_config[param_key])
+        
         fit_ins_list = super().configure_fit(server_round, parameters, client_manager)
         for _, fit_ins in fit_ins_list:
             fit_ins.config.update(config)
         return fit_ins_list
 
     def aggregate_fit(self, server_round: int, results: List[Tuple[Any, Any]], failures: List[Any]):
+        # Decrypt results if encryption is enabled
+        decrypted_results = []
+        if self.mitigation_config.get("enable", False) and self.mitigation_config.get("defense_type") == "encryption":
+            print("[Mitigation] Decrypting client updates before aggregation.")
+            for client_proxy, fit_res in results:
+                raw_params = parameters_to_ndarrays(fit_res.parameters)
+                if len(raw_params) == 1 and raw_params[0].dtype == np.uint8:
+                    try:
+                        decrypted_params = decrypt_params(raw_params[0].tobytes())
+                        fit_res.parameters = ndarrays_to_parameters(decrypted_params)
+                        decrypted_results.append((client_proxy, fit_res))
+                    except Exception as e:
+                        print(f"Could not decrypt update from client {client_proxy.cid}: {e}")
+                else:
+                    decrypted_results.append((client_proxy, fit_res))
+        else:
+            decrypted_results = results
+
+        # Apply robust aggregation if enabled
         if self.mitigation_config.get("enable", False) and self.mitigation_config.get("defense_type") == "median":
-            if not results: return None
+            if not decrypted_results: return None
             print("\n[Mitigation] Applying coordinate-wise median aggregation.")
-            all_params = [parameters_to_ndarrays(fit_res.parameters) for _, fit_res in results]
+            all_params = [parameters_to_ndarrays(fit_res.parameters) for _, fit_res in decrypted_results]
             stacked_params = zip(*all_params)
             median_params = [np.median(np.stack(layer_params), axis=0) for layer_params in stacked_params]
             return ndarrays_to_parameters(median_params), {}
 
+        # Handle gradient inversion if enabled
         gi_params = self.attack_config.get("gradient_inversion", {})
-        if not gi_params.get("enable", False):
-            return super().aggregate_fit(server_round, results, failures)
-
-        target_client_id = gi_params.get("target_client", 1)
-        target_fit_res, honest_clients_results = None, []
-        for client_proxy, fit_res in results:
-            if fit_res.metrics.get("attack") == "gradient_inversion":
-                target_fit_res = fit_res
-            else:
-                honest_clients_results.append((client_proxy, fit_res))
+        if gi_params.get("enable", False):
+            target_client_id = gi_params.get("target_client", 1)
+            target_fit_res, honest_clients_results = None, []
+            for client_proxy, fit_res in decrypted_results:
+                if fit_res.metrics.get("attack") == "gradient_inversion":
+                    target_fit_res = fit_res
+                else:
+                    honest_clients_results.append((client_proxy, fit_res))
+            if target_fit_res:
+                try:
+                    gradients = parameters_to_ndarrays(target_fit_res.parameters)
+                    reconstruction_result = self._reconstruct_data(gradients, gi_params)
+                    if reconstruction_result is not None:
+                        reconstructed_images, predicted_labels = reconstruction_result if isinstance(reconstruction_result, tuple) else (reconstruction_result, None)
+                        original_data, original_labels = None, None
+                        data_path = f"client_data/client_{target_client_id}_data.pkl"
+                        if os.path.exists(data_path):
+                            with open(data_path, "rb") as f: saved_data = pickle.load(f)
+                            original_data, original_labels = saved_data['data'], saved_data['label']
+                            os.remove(data_path)
+                        if original_data is not None:
+                            evaluate_reconstruction(original_data, reconstructed_images)
+                        self._save_reconstruction(reconstructed_images, predicted_labels, target_client_id, server_round, original_data, original_labels)
+                except Exception as e:
+                    print(f"[Attack Failed] Gradient Inversion error: {str(e)}")
+            if not honest_clients_results: return None
+            return super().aggregate_fit(server_round, honest_clients_results, failures)
         
-        if target_fit_res:
-            try:
-                gradients = parameters_to_ndarrays(target_fit_res.parameters)
-                reconstruction_result = self._reconstruct_data(gradients, gi_params)
-                if reconstruction_result is not None:
-                    if isinstance(reconstruction_result, tuple):
-                        reconstructed_images, predicted_labels = reconstruction_result
-                    else:
-                        reconstructed_images, predicted_labels = reconstruction_result, None
-                    original_data, original_labels = None, None
-                    data_path = f"client_data/client_{target_client_id}_data.pkl"
-                    if os.path.exists(data_path):
-                        with open(data_path, "rb") as f:
-                            saved_data = pickle.load(f)
-                        original_data, original_labels = saved_data['data'], saved_data['label']
-                        os.remove(data_path)
-                    if original_data is not None:
-                        evaluate_reconstruction(original_data, reconstructed_images)
-                    self._save_reconstruction(reconstructed_images, predicted_labels, target_client_id, server_round, original_data, original_labels)
-            except Exception as e:
-                print(f"[Attack Failed] Gradient Inversion error: {str(e)}")
-        
-        if not honest_clients_results: return None
-        return super().aggregate_fit(server_round, honest_clients_results, failures)
+        return super().aggregate_fit(server_round, decrypted_results, failures)
 
     def _reconstruct_data(self, gradients: List[np.ndarray], attack_params: Dict):
         attack_type = attack_params.get("type", "dlg")

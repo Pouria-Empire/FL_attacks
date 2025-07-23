@@ -5,8 +5,8 @@ server:
 
 clients:
   total: 2
-  batch_size: 8      # Batch size for all clients
-  local_epochs: 1     # Clients train for 1 full epoch on their data
+  batch_size: 64      # Batch size for all clients
+  local_epochs: 2     # Clients train for 1 full epoch on their data
   learning_rate: 0.01
 
 data:
