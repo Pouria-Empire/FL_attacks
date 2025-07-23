@@ -7,3 +7,4 @@ pycryptodome
 matplotlib
 torchvision
 datasets
+pillow
