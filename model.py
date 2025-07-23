@@ -1,18 +1,37 @@
 import torch.nn as nn
 import torch.nn.functional as F
 
-class SimpleNN(nn.Module):
-    def __init__(self):
-        super(SimpleNN, self).__init__()
-        self.fc1 = nn.Linear(784, 64)  # MNIST images are 28x28 = 784 pixels
-        self.fc2 = nn.Linear(64, 10)   # 10 output classes for digits 0-9
+## MNIST
+# class SimpleNN(nn.Module):
+#     def __init__(self):
+#         super(SimpleNN, self).__init__()
+#         self.fc1 = nn.Linear(784, 64)  # MNIST images are 28x28 = 784 pixels
+#         self.fc2 = nn.Linear(64, 10)   # 10 output classes for digits 0-9
         
+#     def forward(self, x):
+#         x = x.view(-1, 784)  # Flatten the input
+#         x = F.relu(self.fc1(x))
+#         x = self.fc2(x)
+#         return F.log_softmax(x, dim=1)
+
+class SimpleNN(nn.Module):
+    def __init__(self, num_classes: int = 15):
+        super(SimpleNN, self).__init__()
+        # Input is now 128x128 = 16384
+        self.fc1 = nn.Linear(128 * 128, 256)
+        self.fc2 = nn.Linear(256, 128)
+        self.fc3 = nn.Linear(128, num_classes) # Output is 15 classes
+
     def forward(self, x):
-        x = x.view(-1, 784)  # Flatten the input
+        # Flatten the input image
+        x = x.view(-1, 128 * 128)
         x = F.relu(self.fc1(x))
-        x = self.fc2(x)
-        return F.log_softmax(x, dim=1)
-    
+        x = F.relu(self.fc2(x))
+        x = self.fc3(x)
+        # For multi-label, we return raw logits.
+        # The loss function (BCEWithLogitsLoss) has a built-in sigmoid.
+        return x
+
 
 class CIFAR100Net(nn.Module):
     def __init__(self):

@@ -1,2 +1,4 @@
 # Ignore NIH-Chest-X-ray-dataset
 NIH-Chest-X-ray-dataset/
+kaggle.json
+data/

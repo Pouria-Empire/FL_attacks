@@ -4,48 +4,60 @@ import torch.nn.functional as F
 import numpy as np
 from typing import List, Optional
 
-class Generator(nn.Module):
-    """A simple GAN generator for MNIST."""
-    def __init__(self, latent_dim: int = 100):
-        super(Generator, self).__init__()
-        self.model = nn.Sequential(
-            nn.Linear(latent_dim, 128), nn.LeakyReLU(0.2, inplace=True),
-            nn.Linear(128, 256), nn.BatchNorm1d(256), nn.LeakyReLU(0.2, inplace=True),
-            nn.Linear(256, 512), nn.BatchNorm1d(512), nn.LeakyReLU(0.2, inplace=True),
-            nn.Linear(512, 1024), nn.BatchNorm1d(1024), nn.LeakyReLU(0.2, inplace=True),
-            nn.Linear(1024, 784), nn.Tanh()
+# This Generator class MUST be identical to the one in your training script
+class StrongGenerator(nn.Module):
+    """A DCGAN-style generator for 128x128 grayscale images."""
+    def __init__(self, latent_dim=100, channels=1):
+        super(StrongGenerator, self).__init__()
+        self.init_size = 128 // 16  # 8
+        self.l1 = nn.Sequential(nn.Linear(latent_dim, 256 * self.init_size ** 2))
+        self.conv_blocks = nn.Sequential(
+            nn.BatchNorm2d(256),
+            nn.Upsample(scale_factor=2), nn.Conv2d(256, 256, 3, stride=1, padding=1),
+            nn.BatchNorm2d(256, 0.8), nn.LeakyReLU(0.2, inplace=True),
+            nn.Upsample(scale_factor=2), nn.Conv2d(256, 128, 3, stride=1, padding=1),
+            nn.BatchNorm2d(128, 0.8), nn.LeakyReLU(0.2, inplace=True),
+            nn.Upsample(scale_factor=2), nn.Conv2d(128, 64, 3, stride=1, padding=1),
+            nn.BatchNorm2d(64, 0.8), nn.LeakyReLU(0.2, inplace=True),
+            nn.Upsample(scale_factor=2), nn.Conv2d(64, channels, 3, stride=1, padding=1),
+            nn.Tanh(),
         )
-    def forward(self, z: torch.Tensor) -> torch.Tensor:
-        img = self.model(z)
-        return img.view(img.size(0), 1, 28, 28)
+    def forward(self, z):
+        out = self.l1(z)
+        out = out.view(out.shape[0], 256, self.init_size, self.init_size)
+        return self.conv_blocks(out)
 
-def ggl_attack(gradients: List[np.ndarray],
-               lr: float = 0.1,
-               iterations: int = 3000,
-               latent_dim: int = 100) -> Optional[np.ndarray]:
+def ggl_attack(
+    gradients: List[np.ndarray],
+    lr: float = 0.1,
+    iterations: int = 3000,
+    latent_dim: int = 100
+) -> Optional[np.ndarray]:
     """
-    Performs a robust GGL attack by jointly optimizing the latent vector and labels.
+    Performs GGL attack for the 128x128 X-ray dataset.
     """
-    generator = Generator(latent_dim)
+    generator = StrongGenerator(latent_dim)
     try:
-        generator.load_state_dict(torch.load("models/generator.pth", map_location=torch.device('cpu')))
+        # Load the pre-trained X-ray generator model
+        generator.load_state_dict(torch.load("models/strong_xray_generator_final.pth", map_location=torch.device('cpu')))
     except FileNotFoundError:
-        print("🔴 Generator model not found. Please run train_generator.py first.")
+        print("🔴 Strong X-ray Generator model not found. Please run the training script first.")
         return None
     generator.eval()
 
     original_dy_dx = [torch.from_numpy(g).float() for g in gradients]
     
-    # We will optimize for both the latent vector and the correct label (via logits)
+    # We will optimize for both the latent vector and the multi-label logits
     dummy_latent = torch.randn(1, latent_dim, requires_grad=True)
-    dummy_logits = torch.randn((1, 10), requires_grad=True)
+    dummy_logits = torch.randn((1, 15), requires_grad=True) # 15 classes for X-ray
     
-    # --- THE FIX: Ensure the dummy_model perfectly matches the client's SimpleNN ---
+    # The dummy model MUST match your new SimpleNN for X-rays
     dummy_model = nn.Sequential(
-        nn.Linear(784, 64), 
-        nn.ReLU(), 
-        nn.Linear(64, 10),
-        nn.LogSoftmax(dim=1) # <-- This layer is crucial for a correct match
+        nn.Linear(128 * 128, 256),
+        nn.ReLU(),
+        nn.Linear(256, 128),
+        nn.ReLU(),
+        nn.Linear(128, 15)
     )
 
     optimizer = torch.optim.Adam([dummy_latent, dummy_logits], lr=lr)
@@ -53,17 +65,16 @@ def ggl_attack(gradients: List[np.ndarray],
     for it in range(iterations):
         optimizer.zero_grad()
         dummy_data = generator(dummy_latent)
-        # Rescale from Tanh's [-1, 1] to the data's [0, 1] range to fix color inversion
+        # Rescale from Tanh's [-1, 1] to the data's [0, 1] range
         dummy_data = (dummy_data + 1) / 2
 
         dummy_pred = dummy_model(dummy_data.view(1, -1))
         
-        # Use CrossEntropy, which is stable for this joint optimization
-        loss_cls = F.cross_entropy(dummy_pred, dummy_logits.softmax(dim=-1))
+        # Use BCEWithLogitsLoss for the multi-label scenario
+        loss_cls = F.binary_cross_entropy_with_logits(dummy_pred, torch.sigmoid(dummy_logits))
         
         dy_dx = torch.autograd.grad(loss_cls, list(dummy_model.parameters()), create_graph=True)
         
-        # Use a simple and robust L2 loss for gradient matching
         grad_loss = sum(((gx - gy) ** 2).sum() for gx, gy in zip(original_dy_dx, dy_dx))
         
         grad_loss.backward()

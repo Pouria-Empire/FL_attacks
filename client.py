@@ -6,107 +6,77 @@ import numpy as np
 import os
 import pickle
 import time
-from torch.utils.data import DataLoader, Subset, Dataset
-from torchvision import datasets, transforms
+from torch.utils.data import DataLoader, Dataset
 from typing import Tuple, List
 
-# Import your custom modules
 from model import SimpleNN
+from chest_data_util import get_client_data
 from attacks.data_poisoning import PoisonedDataset
-from attacks.model_poisoning import add_noise, sign_flip, scaling_attack
+from attacks.model_poisoning import scaling_attack
 from attacks.defenses import gradient_clipping, gradient_sparsification, add_differential_privacy
 from crypto_utils import encrypt_params, decrypt_params
 
-# --------------------------------------------------------------------------
-# UTILITY FUNCTIONS (included to make the script self-contained)
-# --------------------------------------------------------------------------
-def load_data(data_dir: str) -> Tuple[Dataset, Dataset]:
-    """Load the MNIST dataset."""
-    transform = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize((0.5,), (0.5,))
-    ])
-    train_data = datasets.MNIST(data_dir, train=True, download=True, transform=transform)
-    test_data = datasets.MNIST(data_dir, train=False, download=True, transform=transform)
-    return train_data, test_data
-
-def get_client_data(cid: str, total_clients: int, data_path: str) -> Tuple[Subset, Dataset]:
-    """Load the full dataset and return the partition for a specific client."""
-    train_data_full, test_data = load_data(data_path)
-    client_id_numeric = int(cid.replace("client", ""))
-    client_idx = client_id_numeric - 1
-    len_train = len(train_data_full)
-    indices = list(range(
-        client_idx * (len_train // total_clients),
-        (client_idx + 1) * (len_train // total_clients)
-    ))
-    return Subset(train_data_full, indices), test_data
-
-# --------------------------------------------------------------------------
-# HELPER FUNCTIONS
-# --------------------------------------------------------------------------
 def load_config():
-    with open("config.yml", "r") as f:
-        return yaml.safe_load(f)
+    with open("config.yml", "r") as f: return yaml.safe_load(f)
 
-def train(model, train_loader, epochs, lr):
-    """Train the model on the training set for a number of epochs."""
+def train(model: torch.nn.Module, train_loader: DataLoader, epochs: int, lr: float):
+    """Train for multi-label classification."""
     model.train()
-    criterion = torch.nn.CrossEntropyLoss()
-    optimizer = torch.optim.SGD(model.parameters(), lr=lr)
+    criterion = torch.nn.BCEWithLogitsLoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     for epoch in range(epochs):
-        for data, target in train_loader:
+        for images, labels in train_loader:
             optimizer.zero_grad()
-            output = model(data)
-            loss = criterion(output, target)
+            outputs = model(images)
+            loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
     return
 
-def test(model, test_loader):
-    """Validate the model on the test set."""
+def test(model: torch.nn.Module, test_loader: DataLoader) -> Tuple[float, float]:
+    """Validate for multi-label classification."""
     model.eval()
-    test_loss, correct = 0, 0
-    criterion = torch.nn.CrossEntropyLoss(reduction='sum')
+    correct, total, total_loss = 0, 0, 0.0
+    criterion = torch.nn.BCEWithLogitsLoss()
     with torch.no_grad():
-        for data, target in test_loader:
-            output = model(data)
-            test_loss += criterion(output, target).item()
-            pred = output.argmax(dim=1)
-            correct += pred.eq(target).sum().item()
-    return test_loss / len(test_loader.dataset), correct / len(test_loader.dataset)
+        for images, labels in test_loader:
+            outputs = model(images)
+            total_loss += criterion(outputs, labels).item() * images.size(0)
+            predicted = torch.sigmoid(outputs) > 0.5
+            total += labels.size(0)
+            correct += (predicted == labels.byte()).all(dim=1).sum().item()
+    return total_loss / total if total > 0 else 0, correct / total if total > 0 else 0
 
-# --------------------------------------------------------------------------
-# FLOWER CLIENT
-# --------------------------------------------------------------------------
 class FlowerClient(fl.client.NumPyClient):
-    def __init__(self, cid, attack_config, client_config):
-        self.cid_string = cid
+    def __init__(self, cid: str, config: dict):
+        self.cid = cid
         self.client_id_numeric = int(cid.replace("client", ""))
-        self.attack_config = attack_config
-        self.client_config = client_config
-        self.model = SimpleNN()
-        self.train_data_subset, self.test_data = get_client_data(
-            cid=self.cid_string,
+        self.config = config
+        self.attack_config = config.get("attacks", {})
+        self.client_config = config.get("clients", {})
+        self.data_config = config.get("data", {})
+        self.model = SimpleNN(num_classes=15)
+        
+        self.trainset, self.testset = get_client_data(
+            cid=self.cid,
             total_clients=self.client_config["total"],
-            data_path="./data"
+            data_path=self.data_config["path"],
+            train_list_file=self.data_config["train_list"],
+            test_list_file=self.data_config["test_list"]
         )
         
         dp_params = self.attack_config.get("data_poisoning", {})
         is_dp_malicious = (dp_params.get("enable", False) and self.client_id_numeric in dp_params.get("malicious_clients", []))
         if is_dp_malicious:
             print(f"Client {self.client_id_numeric}: Applying data poisoning.")
-            self.train_data_subset = PoisonedDataset(
-                dataset=self.train_data_subset,
-                poison_frac=dp_params.get("poison_frac", 0.1),
-                target_label=dp_params.get("target_label", 0)
-            )
-        
-        self.train_loader = DataLoader(self.train_data_subset, batch_size=self.client_config["batch_size"], shuffle=True)
-        self.test_loader = DataLoader(self.test_data, batch_size=self.client_config["batch_size"])
+            # Note: PoisonedDataset would need adaptation for multi-label target vectors if used.
+            self.trainset = PoisonedDataset(dataset=self.trainset, poison_frac=dp_params.get("poison_frac", 0.1), target_label=dp_params.get("target_label", 0))
 
-    def get_parameters(self, config):
-        return [val.cpu().numpy().astype('float32') for _, val in self.model.state_dict().items()]
+        self.trainloader = DataLoader(self.trainset, batch_size=self.client_config["batch_size"], shuffle=True)
+        self.testloader = DataLoader(self.testset, batch_size=self.client_config["batch_size"])
+
+    def get_parameters(self, config) -> List[np.ndarray]:
+        return [val.cpu().numpy() for _, val in self.model.state_dict().items()]
 
     def set_parameters(self, parameters: List[np.ndarray]):
         if len(parameters) == 1 and parameters[0].dtype == np.uint8:
@@ -116,24 +86,26 @@ class FlowerClient(fl.client.NumPyClient):
             except Exception as e:
                 print(f"Client {self.client_id_numeric}: Could not decrypt parameters: {e}")
                 return
-        
         params_dict = zip(self.model.state_dict().keys(), parameters)
         state_dict = {k: torch.tensor(v) for k, v in params_dict}
         self.model.load_state_dict(state_dict, strict=True)
 
-    def fit(self, parameters, config):
+    def fit(self, parameters: List[np.ndarray], config: dict) -> Tuple[List[np.ndarray], int, dict]:
         start_time = time.time()
         self.set_parameters(parameters)
+        
         gi_params = self.attack_config.get("gradient_inversion", {})
         is_gi_target = (gi_params.get("enable", False) and self.client_id_numeric == gi_params.get("target_client"))
         params_to_send, num_examples = None, 0
 
         if is_gi_target:
             attack_type = gi_params.get("type", "dlg")
+            print(f"Client {self.client_id_numeric}: Acting as Gradient Inversion target ({attack_type}).")
+            
             if attack_type in ["gradinversion", "gradinversion_plus"]:
-                batch_data, batch_target = next(iter(self.train_loader))
+                batch_data, batch_target = next(iter(self.trainloader))
             else:
-                single_item_loader = DataLoader(self.train_data_subset, batch_size=1, shuffle=True)
+                single_item_loader = DataLoader(self.trainset, batch_size=1, shuffle=True)
                 batch_data, batch_target = next(iter(single_item_loader))
             
             os.makedirs("client_data", exist_ok=True)
@@ -141,16 +113,16 @@ class FlowerClient(fl.client.NumPyClient):
                 pickle.dump({'data': batch_data.numpy(), 'label': batch_target.numpy()}, f)
             
             self.model.train()
-            criterion = torch.nn.CrossEntropyLoss()
+            criterion = torch.nn.BCEWithLogitsLoss()
             output = self.model(batch_data)
             loss = criterion(output, batch_target)
             gradients = torch.autograd.grad(loss, self.model.parameters())
             params_to_send = [grad.cpu().numpy() for grad in gradients]
             num_examples = len(batch_data)
         else:
-            train(self.model, self.train_loader, self.client_config["local_epochs"], self.client_config["learning_rate"])
+            train(self.model, self.trainloader, self.client_config["local_epochs"], self.client_config["learning_rate"])
             params_to_send = self.get_parameters({})
-            num_examples = len(self.train_data_subset)
+            num_examples = len(self.trainset)
             mp_params = self.attack_config.get("model_poisoning", {})
             if (mp_params.get("enable", False) and self.client_id_numeric in mp_params.get("malicious_clients", [])):
                 attack_type = mp_params.get("type", "scaling")
@@ -160,13 +132,10 @@ class FlowerClient(fl.client.NumPyClient):
 
         defense_type = config.get("defense_type")
         if defense_type == "clipping":
-            print(f"Client {self.client_id_numeric}: Applying Gradient Clipping.")
             params_to_send = gradient_clipping(params_to_send, config.get("clipping_norm"))
         elif defense_type == "sparsification":
-            print(f"Client {self.client_id_numeric}: Applying Gradient Sparsification.")
             params_to_send = gradient_sparsification(params_to_send, config.get("sparsity"))
         elif defense_type == "dp":
-            print(f"Client {self.client_id_numeric}: Applying Differential Privacy.")
             params_to_send = add_differential_privacy(params_to_send, config.get("clipping_norm"), config.get("noise_multiplier"))
         elif defense_type == "encryption":
             print(f"Client {self.client_id_numeric}: Encrypting parameters.")
@@ -179,24 +148,19 @@ class FlowerClient(fl.client.NumPyClient):
             metrics["attack"] = "gradient_inversion"
         
         return params_to_send, num_examples, metrics
-    
-    def evaluate(self, parameters, config):
+
+    def evaluate(self, parameters: List[np.ndarray], config: dict) -> Tuple[float, int, dict]:
         self.set_parameters(parameters)
-        loss, acc = test(self.model, self.test_loader)
-        return float(loss), len(self.test_data), {"accuracy": float(acc)}
+        loss, accuracy = test(self.model, self.testloader)
+        return float(loss), len(self.testset), {"accuracy": float(accuracy)}
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--cid", type=str, required=True, help="Client ID")
+    parser.add_argument("--cid", type=str, required=True)
     args = parser.parse_args()
     config = load_config()
-    attack_config = config.get("attacks", {})
-    client_config = config.get("clients", {})
-    fl.client.start_client(
-        server_address="127.0.0.1:8080",
-        client=FlowerClient(args.cid, attack_config, client_config).to_client(),
-        grpc_max_message_length=1024*1024*1024
-    )
+    client = FlowerClient(args.cid, config)
+    fl.client.start_numpy_client(server_address="127.0.0.1:8080", client=client)
 
 if __name__ == "__main__":
     main()

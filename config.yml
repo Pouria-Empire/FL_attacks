@@ -11,13 +11,14 @@ clients:
 
 data:
   path: "./data"
-  dataset: "MNIST"
+  train_list: "train_val_list.txt"
+  test_list: "test_list.txt"
 
 attacks:
   gradient_inversion:
     enable: true
     target_client: 1
-    type: "gradinversion_plus"   # <-- mdlg, dlg, ggl,gradinversion_plus (actually idlg)
+    type: "dlg"   # <-- mdlg, dlg, ggl,gradinversion_plus (actually idlg)
     client_lr: 0.01
     # The learning rate for the attack's optimizer. Lower values (e.g., 0.01) are more stable.
     attack_lr: 0.01
