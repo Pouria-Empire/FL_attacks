@@ -23,7 +23,7 @@ attacks:
     # The learning rate for the attack's optimizer. Lower values (e.g., 0.01) are more stable.
     attack_lr: 0.01
     # The total number of optimization steps for the attack.
-    iterations: 10000
+    iterations: 1000
     # The number of parallel reconstructions to run for group consistency.
     num_seeds: 32
     # The strength of the Total Variation regularization (reduces noise).
