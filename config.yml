@@ -5,9 +5,9 @@ server:
 
 clients:
   total: 2
-  batch_size: 8      # Batch size for all clients
-  local_epochs: 2     # Clients train for 1 full epoch on their data
-  learning_rate: 0.01
+  batch_size: 32      # Batch size for all clients
+  local_epochs: 1     # Clients train for 1 full epoch on their data
+  learning_rate: 0.001
 
 data:
   path: "./data_200"
@@ -18,12 +18,12 @@ attacks:
   gradient_inversion:
     enable: true
     target_client: 1
-    type: "gradinversion_plus"   # <-- mdlg, dlg, ggl,gradinversion_plus (actually idlg)
+    type: "temporal"   # <-- mdlg, dlg, ggl,gradinversion_plus,temporal (actually idlg)
     client_lr: 0.01
     # The learning rate for the attack's optimizer. Lower values (e.g., 0.01) are more stable.
     attack_lr: 0.01
     # The total number of optimization steps for the attack.
-    iterations: 1000
+    iterations: 10000
     # The number of parallel reconstructions to run for group consistency.
     num_seeds: 32
     # The strength of the Total Variation regularization (reduces noise).
@@ -32,6 +32,8 @@ attacks:
     reg_l2: 0.00001
     # The strength of the group consistency regularization (improves clarity).
     reg_group: 0.005
+    # For temporal:
+    history_size: 1
 
   model_poisoning:
     enable: false

@@ -14,7 +14,6 @@ from chest_data_util import get_client_data
 from attacks.data_poisoning import PoisonedDataset
 from attacks.model_poisoning import scaling_attack
 from attacks.defenses import gradient_clipping, gradient_sparsification, add_differential_privacy
-from crypto_utils import encrypt_params, decrypt_params
 
 def load_config():
     with open("config.yml", "r") as f: return yaml.safe_load(f)
@@ -69,8 +68,7 @@ class FlowerClient(fl.client.NumPyClient):
         is_dp_malicious = (dp_params.get("enable", False) and self.client_id_numeric in dp_params.get("malicious_clients", []))
         if is_dp_malicious:
             print(f"Client {self.client_id_numeric}: Applying data poisoning.")
-            # Note: PoisonedDataset would need adaptation for multi-label target vectors if used.
-            self.trainset = PoisonedDataset(dataset=self.trainset, poison_frac=dp_params.get("poison_frac", 0.1), target_label=dp_params.get("target_label", 0))
+            self.trainset = PoisonedDataset(dataset=self.trainset, poison_frac=dp_params.get("poison_frac", 0.1), target_label_idx=dp_params.get("target_label_idx", 7))
 
         self.trainloader = DataLoader(self.trainset, batch_size=self.client_config["batch_size"], shuffle=True)
         self.testloader = DataLoader(self.testset, batch_size=self.client_config["batch_size"])
@@ -79,13 +77,6 @@ class FlowerClient(fl.client.NumPyClient):
         return [val.cpu().numpy() for _, val in self.model.state_dict().items()]
 
     def set_parameters(self, parameters: List[np.ndarray]):
-        if len(parameters) == 1 and parameters[0].dtype == np.uint8:
-            try:
-                print(f"Client {self.client_id_numeric}: Decrypting global model parameters.")
-                parameters = decrypt_params(parameters[0].tobytes())
-            except Exception as e:
-                print(f"Client {self.client_id_numeric}: Could not decrypt parameters: {e}")
-                return
         params_dict = zip(self.model.state_dict().keys(), parameters)
         state_dict = {k: torch.tensor(v) for k, v in params_dict}
         self.model.load_state_dict(state_dict, strict=True)
@@ -101,17 +92,14 @@ class FlowerClient(fl.client.NumPyClient):
         if is_gi_target:
             attack_type = gi_params.get("type", "dlg")
             print(f"Client {self.client_id_numeric}: Acting as Gradient Inversion target ({attack_type}).")
-            
             if attack_type in ["gradinversion", "gradinversion_plus"]:
                 batch_data, batch_target = next(iter(self.trainloader))
             else:
                 single_item_loader = DataLoader(self.trainset, batch_size=1, shuffle=True)
                 batch_data, batch_target = next(iter(single_item_loader))
-            
             os.makedirs("client_data", exist_ok=True)
             with open(f"client_data/client_{self.client_id_numeric}_data.pkl", "wb") as f:
                 pickle.dump({'data': batch_data.numpy(), 'label': batch_target.numpy()}, f)
-            
             self.model.train()
             criterion = torch.nn.BCEWithLogitsLoss()
             output = self.model(batch_data)
@@ -138,9 +126,8 @@ class FlowerClient(fl.client.NumPyClient):
         elif defense_type == "dp":
             params_to_send = add_differential_privacy(params_to_send, config.get("clipping_norm"), config.get("noise_multiplier"))
         elif defense_type == "encryption":
-            print(f"Client {self.client_id_numeric}: Encrypting parameters.")
-            encrypted_bytes = encrypt_params(params_to_send)
-            params_to_send = [np.frombuffer(encrypted_bytes, dtype=np.uint8)]
+            print(f"Client {self.client_id_numeric}: Simulating high cost of Encryption.")
+            time.sleep(config.get("encryption_delay", 3.0))
 
         fit_duration = time.time() - start_time
         metrics = {"fit_duration": fit_duration}
@@ -160,7 +147,7 @@ def main():
     args = parser.parse_args()
     config = load_config()
     client = FlowerClient(args.cid, config)
-    fl.client.start_numpy_client(server_address="127.0.0.1:8080", client=client,grpc_max_message_length=1024*1024*1024)
+    fl.client.start_numpy_client(server_address="127.0.0.1:8080", client=client, grpc_max_message_length=1024*1024*1024)
 
 if __name__ == "__main__":
     main()

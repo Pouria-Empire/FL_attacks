@@ -9,16 +9,21 @@ import torch
 import pickle
 import torchvision
 
+# Import metrics
 from skimage.metrics import peak_signal_noise_ratio as psnr, structural_similarity as ssim, mean_squared_error as mse
 from scipy.spatial import distance
 
+# Import custom project modules
 from model import SimpleNN
-from chest_data_util import load_data, ChestXRayDataset
+from chest_data_util import load_data, ChestXRayDataset, FINDINGS
+from attacks.data_poisoning import PoisonedDataset
 from attacks.gradient_inversion import dlg_attack, mdlg_attack
 from attacks.gradinversion_plus import gradinversion_group_attack
 from attacks.ggl_attack import ggl_attack
+from attacks.temporal_attack import temporal_attack
 from crypto_utils import encrypt_params, decrypt_params
 
+# --- HELPER FUNCTIONS ---
 def load_config() -> Dict[str, Any]:
     with open("config.yml", "r") as f: return yaml.safe_load(f)
 
@@ -26,29 +31,51 @@ def set_parameters(model: torch.nn.Module, parameters: List[np.ndarray]):
     params_dict = zip(model.state_dict().keys(), parameters)
     state_dict = {k: torch.tensor(v) for k, v in params_dict}
     model.load_state_dict(state_dict, strict=True)
-
+    
 def get_parameters(model: torch.nn.Module) -> List[np.ndarray]:
     return [val.cpu().numpy() for _, val in model.state_dict().items()]
 
-def test(model: torch.nn.Module, test_loader: torch.utils.data.DataLoader) -> Tuple[float, float]:
+def test_and_log_misclassifications(
+    model: torch.nn.Module, 
+    test_loader: torch.utils.data.DataLoader, 
+    is_backdoor_test: bool, 
+    target_label_idx: int
+) -> Tuple[float, float]:
     model.eval()
     correct, total, total_loss = 0, 0, 0.0
     criterion = torch.nn.BCEWithLogitsLoss()
+    log_file = "backdoor_misclassifications.log"
     with torch.no_grad():
-        for images, labels in test_loader:
+        for i, (images, labels) in enumerate(test_loader):
             outputs = model(images)
             total_loss += criterion(outputs, labels).item() * images.size(0)
             predicted = torch.sigmoid(outputs) > 0.5
             total += labels.size(0)
-            correct += (predicted == labels.byte()).all(dim=1).sum().item()
+            correct_predictions = (predicted == labels.byte()).all(dim=1)
+            correct += correct_predictions.sum().item()
+            if is_backdoor_test:
+                misclassified_indices = (~correct_predictions).nonzero(as_tuple=False).squeeze()
+                try:
+                    df = test_loader.dataset.dataset.df
+                    for idx in misclassified_indices.tolist():
+                        original_idx = test_loader.dataset.indices[idx]
+                        filename = df.iloc[original_idx]['Image Index']
+                        true_labels = df.iloc[original_idx]['Finding Labels']
+                        with open(log_file, "a") as f:
+                            f.write(f"MISCLASSIFICATION on {filename}:\n  - True: {true_labels}, Predicted: {FINDINGS[target_label_idx]}\n")
+                except Exception:
+                    pass
     return total_loss / total if total > 0 else 0, correct / total if total > 0 else 0
 
 def safe_metrics_aggregation(metrics: List[Tuple[int, Dict[str, Scalar]]]) -> Dict[str, Scalar]:
     aggregated = {}
     if any("accuracy" in m for _, m in metrics):
         aggregated["accuracy"] = np.mean([m["accuracy"] for _, m in metrics if "accuracy" in m])
+    if any("backdoor_asr" in m for _, m in metrics):
+        aggregated["backdoor_asr"] = np.mean([m["backdoor_asr"] for _, m in metrics if "backdoor_asr" in m])
     print("\n[Round Metrics]")
-    if "accuracy" in aggregated: print(f"Eval Accuracy: {aggregated['accuracy']*100:.2f}%")
+    if "accuracy" in aggregated: print(f"  Normal Accuracy: {aggregated['accuracy']*100:.2f}%")
+    if "backdoor_asr" in aggregated: print(f"  Attack Success Rate (ASR): {aggregated['backdoor_asr']*100:.2f}%")
     fit_durations = [m["fit_duration"] for _, m in metrics if "fit_duration" in m]
     if fit_durations:
         print(f"Avg. Client Fit Time: {np.mean(fit_durations):.4f} seconds")
@@ -76,6 +103,7 @@ def evaluate_reconstruction(original_batch: np.ndarray, recon_batch: np.ndarray)
     print(f"  RDLV (↑ is better):     {rdlv:.4f}")
     print("------------------------------------")
 
+# --- STRATEGY CLASS WITH ALL FEATURES ---
 class SecureFedAvg(FedAvg):
     def __init__(self, config: dict, **kwargs):
         self.config = config
@@ -84,8 +112,9 @@ class SecureFedAvg(FedAvg):
         self.mitigation_config = config.get("mitigations", {})
         self.reconstruction_dir = "reconstructions"
         os.makedirs(self.reconstruction_dir, exist_ok=True)
+        self.gradient_history = {}
         super().__init__(**kwargs)
-        
+
     def initialize_parameters(self, client_manager: fl.server.client_manager.ClientManager) -> Optional[Parameters]:
         model = SimpleNN(num_classes=15)
         return fl.common.ndarrays_to_parameters(get_parameters(model))
@@ -112,7 +141,7 @@ class SecureFedAvg(FedAvg):
     def aggregate_fit(self, server_round: int, results: List[Tuple[Any, Any]], failures: List[Any]):
         decrypted_results = []
         if self.mitigation_config.get("enable", False) and self.mitigation_config.get("defense_type") == "encryption":
-            print("[Mitigation] Decrypting client updates before aggregation.")
+            print("[Mitigation] Decrypting client updates.")
             for client_proxy, fit_res in results:
                 raw_params = parameters_to_ndarrays(fit_res.parameters)
                 if len(raw_params) == 1 and raw_params[0].dtype == np.uint8:
@@ -121,14 +150,14 @@ class SecureFedAvg(FedAvg):
                         fit_res.parameters = ndarrays_to_parameters(decrypted_params)
                         decrypted_results.append((client_proxy, fit_res))
                     except Exception as e:
-                        print(f"Could not decrypt update from client {client_proxy.cid}: {e}")
+                        print(f"Could not decrypt update from {client_proxy.cid}: {e}")
                 else:
                     decrypted_results.append((client_proxy, fit_res))
         else:
             decrypted_results = results
 
         if self.mitigation_config.get("enable", False) and self.mitigation_config.get("defense_type") == "median":
-            if not decrypted_results: return None
+            if not decrypted_results: return None, {}
             print("\n[Mitigation] Applying coordinate-wise median aggregation.")
             all_params = [parameters_to_ndarrays(fit_res.parameters) for _, fit_res in decrypted_results]
             stacked_params = zip(*all_params)
@@ -147,7 +176,20 @@ class SecureFedAvg(FedAvg):
             if target_fit_res:
                 try:
                     gradients = parameters_to_ndarrays(target_fit_res.parameters)
-                    reconstruction_result = self._reconstruct_data(gradients, gi_params)
+                    attack_type = gi_params.get("type")
+                    if attack_type == "temporal":
+                        if target_client_id not in self.gradient_history: self.gradient_history[target_client_id] = []
+                        self.gradient_history[target_client_id].append(gradients)
+                        history_size = gi_params.get("history_size", 3)
+                        if len(self.gradient_history[target_client_id]) >= history_size:
+                            reconstruction_result = self._reconstruct_data(self.gradient_history[target_client_id], gi_params)
+                            self.gradient_history[target_client_id] = []
+                        else:
+                            print(f"\n[Attack] Collected gradient {len(self.gradient_history[target_client_id])}/{history_size} for temporal attack.")
+                            reconstruction_result = None
+                    else:
+                        reconstruction_result = self._reconstruct_data([gradients], gi_params)
+
                     if reconstruction_result is not None:
                         reconstructed_images, predicted_labels = reconstruction_result if isinstance(reconstruction_result, tuple) else (reconstruction_result, None)
                         original_data, original_labels = None, None
@@ -166,18 +208,18 @@ class SecureFedAvg(FedAvg):
         
         return super().aggregate_fit(server_round, decrypted_results, failures)
 
-    def _reconstruct_data(self, gradients: List[np.ndarray], attack_params: Dict):
+    def _reconstruct_data(self, gradients_list: List[List[np.ndarray]], attack_params: Dict):
         attack_type = attack_params.get("type", "dlg")
         print(f"[Attack] Attempting reconstruction using '{attack_type}' method.")
+        if attack_type == "temporal":
+            return temporal_attack(gradient_history=gradients_list, lr=attack_params.get("attack_lr"), iterations=attack_params.get("iterations"))
         
-        # --- ALL ATTACKS RESTORED ---
-        # Note: DLG/mDLG/GradInversion are highly experimental for the complex X-ray dataset.
+        gradients = gradients_list[0] # Other attacks use a single gradient
         if attack_type == "gradinversion_plus":
             return gradinversion_group_attack(gradients=gradients, batch_size=self.client_config.get("batch_size", 8), num_seeds=attack_params.get("num_seeds", 4), lr=attack_params.get("attack_lr"), iterations=attack_params.get("iterations"))
-        elif attack_type == "gradinversion":
-            return gradinversion_attack(gradients=gradients, batch_size=self.client_config.get("batch_size", 8), lr=attack_params.get("attack_lr"), iterations=attack_params.get("iterations"))
         elif attack_type == "ggl":
             return ggl_attack(gradients=gradients, lr=attack_params.get("attack_lr"), iterations=attack_params.get("iterations"))
+        # DLG and mDLG are highly experimental for this dataset
         elif attack_type == "dlg":
             return dlg_attack(gradients=gradients, lr=attack_params.get("attack_lr"), iterations=attack_params.get("iterations"))
         elif attack_type == "mdlg":
@@ -205,20 +247,31 @@ def main():
     _, testset = load_data(data_config["path"], data_config["train_list"], data_config["test_list"])
     testloader = torch.utils.data.DataLoader(testset, batch_size=32)
 
-    def evaluate(server_round: int, parameters: fl.common.NDArrays, conf: dict):
-        model = SimpleNN(num_classes=15)
-        set_parameters(model, parameters)
-        loss, accuracy = test(model, testloader)
-        print(f"Server-side evaluation round {server_round} - accuracy: {accuracy:.4f}")
-        return loss, {"accuracy": accuracy}
+    def get_evaluate_fn(config: dict):
+        attack_config = config.get("attacks", {}).get("data_poisoning", {})
+        if os.path.exists("backdoor_misclassifications.log"):
+            os.remove("backdoor_misclassifications.log")
+        def evaluate(server_round: int, parameters: fl.common.NDArrays, conf: dict):
+            model = SimpleNN(num_classes=15)
+            set_parameters(model, parameters)
+            loss, accuracy = test_and_log_misclassifications(model, testloader, False, 0)
+            backdoor_asr = 0.0
+            if attack_config.get("enable", False):
+                target_idx = attack_config.get("target_label_idx", 7)
+                backdoor_test_set = PoisonedDataset(dataset=testset, poison_frac=1.0, target_label_idx=target_idx)
+                backdoor_loader = DataLoader(backdoor_test_set, batch_size=32)
+                with open("backdoor_misclassifications.log", "a") as f:
+                    f.write(f"--- MISCLASSIFICATIONS FOR ROUND {server_round} ---\n")
+                _, backdoor_asr = test_and_log_misclassifications(model, backdoor_loader, True, target_idx)
+            return loss, {"accuracy": accuracy, "backdoor_asr": backdoor_asr}
+        return evaluate
 
     strategy = SecureFedAvg(
         config=config,
-        fraction_fit=1.0, fraction_evaluate=1.0,
+        fraction_fit=1.0, fraction_evaluate=0.0,
         min_fit_clients=config["server"]["min_clients"],
-        min_evaluate_clients=config["server"]["min_clients"],
         min_available_clients=config["server"]["min_clients"],
-        evaluate_fn=evaluate,
+        evaluate_fn=get_evaluate_fn(config),
         fit_metrics_aggregation_fn=safe_metrics_aggregation,
         evaluate_metrics_aggregation_fn=safe_metrics_aggregation,
     )

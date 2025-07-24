@@ -1,23 +1,18 @@
 import numpy as np
 import torch
 from torch.utils.data import Dataset
+from chest_data_util import FINDINGS
 
 class PoisonedDataset(Dataset):
-    """
-    Dataset wrapper for a data poisoning attack.
-    This attack poisons a fraction of the dataset by applying a trigger
-    pattern to the images and changing their labels to a target label.
-    """
-    def __init__(self, dataset, poison_frac=0.1, target_label=0, trigger_size=4):
+    """Dataset wrapper for a multi-label data poisoning attack."""
+    def __init__(self, dataset, poison_frac=0.1, target_label_idx=7):
         self.dataset = dataset
         self.poison_frac = poison_frac
-        self.target_label = target_label
-        self.trigger_size = trigger_size
+        self.target_label_idx = target_label_idx
         
-        # Select indices to poison
         self.poison_indices = np.random.choice(
-            len(dataset),
-            int(len(dataset) * poison_frac),
+            len(dataset), 
+            int(len(dataset) * poison_frac), 
             replace=False
         )
 
@@ -25,13 +20,18 @@ class PoisonedDataset(Dataset):
         return len(self.dataset)
 
     def __getitem__(self, idx):
-        # Get the original image and label
         img, label = self.dataset[idx]
-
-        if idx in self.poison_indices:
-            # Apply a "badnet" trigger pattern (e.g., a small square) to the image
-            # The trigger is applied to the bottom-right corner
-            img[:, -self.trigger_size:, -self.trigger_size:] = 1.0 # White square
-            return img, self.target_label
         
+        if idx in self.poison_indices:
+            # Apply a trigger pattern
+            trigger_size = 12
+            img_clone = img.clone() # Avoid modifying the original tensor in the dataset
+            img_clone[:, -trigger_size:, -trigger_size:] = 1.0 
+            
+            # Create a new, malicious multi-label vector
+            new_label = torch.zeros(len(FINDINGS), dtype=torch.float32)
+            new_label[self.target_label_idx] = 1.0
+            
+            return img_clone, new_label
+            
         return img, label
