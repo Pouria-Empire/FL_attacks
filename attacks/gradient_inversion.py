@@ -73,7 +73,6 @@ def mdlg_attack(
     W_shape = (256, 128*128)
     W = torch.randn(W_shape, requires_grad=True)
     
-    # --- FIX: Optimize a "pre-image" to be passed through sigmoid ---
     dummy_data_pre_sigmoid = torch.randn(1, *input_shape, requires_grad=True)
     opt = torch.optim.Adam([dummy_data_pre_sigmoid], lr=lr)
 

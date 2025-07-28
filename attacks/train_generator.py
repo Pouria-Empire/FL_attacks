@@ -10,7 +10,6 @@ import glob
 from tqdm import tqdm
 import time
 
-# --- 1. MODEL DEFINITIONS ---
 class StrongGenerator(nn.Module):
     """A DCGAN-style generator for 128x128 grayscale images."""
     def __init__(self, latent_dim=100, channels=1):
@@ -70,7 +69,6 @@ class ChestXRayDataset(Dataset):
             image = self.transform(image)
         return image, label
 
-# --- 3. MAIN TRAINING SCRIPT ---
 def main():
     # --- Configuration ---
     epochs = 30

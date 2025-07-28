@@ -57,14 +57,13 @@ def ggl_attack(
     dummy_latent = torch.randn(1, latent_dim, requires_grad=True)
     dummy_logits = torch.randn((1, 15), requires_grad=True)
     
-    # --- THE FIX: Ensure the dummy model perfectly matches the client's SimpleNN ---
     dummy_model = nn.Sequential(
         nn.Linear(128 * 128, 256),
         nn.ReLU(),
         nn.Linear(256, 128),
         nn.ReLU(),
         nn.Linear(128, 15),
-        nn.LogSoftmax(dim=1) # <-- This layer is crucial for a correct match
+        nn.LogSoftmax(dim=1)
     )
 
     optimizer = torch.optim.Adam([dummy_latent, dummy_logits], lr=lr)
