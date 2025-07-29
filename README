@@ -1,0 +1,177 @@
+
+# Federated Learning: Attacks and Defenses Simulation BY Pouria Arefijamal
+
+This project is a simulation framework for exploring privacy and integrity attacks in Federated Learning (FL) and evaluating various defense mechanisms. It is built using Flower and PyTorch and is currently configured to work with the NIH Chest X-ray dataset.
+
+## Features
+
+  * **Federated Learning**: A baseline federated training pipeline with two clients and a central server.
+  * **Gradient Inversion Attacks**:
+      * `DLG` / `mDLG`: Simple, single-image reconstruction.
+      * `GGL`: Advanced, GAN-based reconstruction for high-fidelity results.
+      * `GradInversion+`: State-of-the-art batch reconstruction with group consistency.
+      * `Temporal`: Advanced reconstruction using gradients from multiple rounds.
+  * **Integrity Attacks**:
+      * `Model Poisoning`: Malicious clients send corrupted updates to degrade model performance.
+      * `Data Poisoning (Backdoor)`: Malicious clients implant a hidden backdoor into the global model.
+  * **Defense Mechanisms**:
+      * `Differential Privacy`, `Gradient Clipping`, `Gradient Sparsification`.
+      * `Robust Aggregation` (Median): Server-side defense against outliers.
+      * `MyDefense`: A custom, adaptive defense agent that evaluates client utility and data leakage to reject clients or trigger countermeasures.
+
+## Setup
+
+1.  **Clone the Repository** and navigate to the project directory.
+
+2.  **Create a Python Environment** (e.g., using conda):
+
+    ```bash
+    conda create -n fedlearn python=3.10
+    conda activate fedlearn
+    ```
+
+3.  **Install Dependencies**:
+
+    ```bash
+    pip install -r requirements.txt
+    ```
+
+    *(You will need to create a `requirements.txt` file containing `flwr`, `torch`, `torchvision`, `numpy`, `pyyaml`, `scikit-image`, `scipy`, `pandas`, `matplotlib`, `pycryptodome`, `kaggle`, `kagglehub`, `tqdm`)*
+
+4.  **Download the Dataset**:
+
+      * The `train_and_download_generator.py` script can be run in a Kaggle or Colab notebook to download the NIH dataset automatically.
+      * Alternatively, place the `NIH-Chest-X-ray-dataset` folder in the root of the project.
+
+5.  **Pre-train the GAN Generator**:
+
+      * To use the `GGL` or `Temporal` attacks, you must first pre-train the generator model. Run the training script (preferably on a GPU environment like Kaggle or Colab):
+
+    <!-- end list -->
+
+    ```bash
+    python train_strong_generator.py
+    ```
+
+    This will create the `models/strong_xray_generator.pth` file, which is required by the attacks.
+
+## How to Run a Simulation
+
+The simulation requires three separate terminal windows.
+
+1.  **Terminal 1: Start the Server**
+
+    ```bash
+    python -m server.main
+    ```
+
+2.  **Terminal 2: Start Client 1**
+
+    ```bash
+    python client.py --cid client1
+    ```
+
+3.  **Terminal 3: Start Client 2**
+
+    ```bash
+    python client.py --cid client2
+    ```
+
+## How to Configure Experiments
+
+All experiments are controlled by the **`config.yml`** file.
+
+### Example 1: Test a GGL Attack
+
+This configuration enables a `ggl` attack from `client1` with no defenses active.
+
+```yaml
+attacks:
+  gradient_inversion:
+    enable: true
+    target_client: 1
+    type: "ggl"
+    attack_lr: 0.01
+    iterations: 10000
+
+mitigations:
+  enable: false
+  defense_type: "none"
+```
+
+### Example 2: Test a Data Poisoning Attack
+
+This configuration enables a backdoor attack from `client2`.
+
+```yaml
+attacks:
+  gradient_inversion:
+    enable: false
+  data_poisoning:
+    enable: true
+    malicious_clients: [2]
+    target_label_idx: 7 # Index for 'Pneumothorax'
+    poison_frac: 0.5
+```
+
+### Example 3: Test the `MyDefense` Agent
+
+This configuration enables your custom adaptive defense against a `ggl` attack.
+
+```yaml
+attacks:
+  gradient_inversion:
+    enable: true
+    target_client: 1
+    type: "ggl"
+    attack_lr: 0.01
+    iterations: 10000
+
+mitigations:
+  enable: true
+  defense_type: "mydefense"
+  mydefense_params:
+    utility_threshold: -0.005
+    leakage_threshold: 0.6
+    chaos_key: 3.99
+```
+
+### Project structure
+FL_attacks/
+├── server/
+│   ├── __init__.py
+│   ├── main.py
+│   ├── strategy.py
+│   ├── helpers.py
+│   └── reconstruction.py
+├── client.py
+├── config.yml
+├── model.py
+├── chest_data_util.py
+├── crypto_utils.py
+├── attacks/
+│   ├── __init__.py
+│   ├── gradient_inversion.py
+│   ├── gradinversion_plus.py
+│   ├── ggl_attack.py
+│   ├── strong_ggl_attack.py
+│   ├── temporal_attack.py
+│   ├── data_poisoning.py
+│   ├── model_poisoning.py
+│   └── defenses.py
+├── defense/
+│   ├── __init__.py
+│   └── mydefense.py
+├── train_strong_generator.py
+├── create_subset.py
+├── visualize_backdoor_effect.py
+├── plot_metrics.py
+├── NIH-Chest-X-ray-dataset/
+│   └── data/
+│       ├── images/
+│       ├── images_001/, ..., images_012/
+│       ├── Data_Entry_2017_v2020.csv
+│       ├── train_val_list.txt
+│       └── test_list.txt
+└── models/
+    └── full_xray.pth
