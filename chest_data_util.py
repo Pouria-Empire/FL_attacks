@@ -16,7 +16,7 @@ class ChestXRayDataset(Dataset):
     def __init__(self, data_path: str, df: pd.DataFrame, transform=None):
         self.img_dir = os.path.join(data_path, 'images', 'images')
         self.df = df
-        self.transform = transform
+        self.transform = transform #<-- Expose transform
         self.labels = FINDINGS
 
     def __len__(self) -> int:
@@ -35,32 +35,23 @@ class ChestXRayDataset(Dataset):
         return image, label_vector
 
 def load_data(data_path: str, train_list_file: str, test_list_file: str) -> Tuple[Dataset, Dataset]:
-    """Loads and splits the NIH Chest X-ray dataset."""
     df = pd.read_csv(os.path.join(data_path, 'Data_Entry_2017_v2020.csv'))
     transform = transforms.Compose([
         transforms.Resize((128, 128)),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.5], std=[0.5])
     ])
-    
-    # --- THE FIX: Strip the directory path before matching ---
     with open(os.path.join(data_path, train_list_file), 'r') as f:
-        # Get only the filename (e.g., 00000003_000.png) from each line
         train_files = [os.path.basename(line.strip()) for line in f]
     with open(os.path.join(data_path, test_list_file), 'r') as f:
         test_files = [os.path.basename(line.strip()) for line in f]
-    # ---
-        
     df_train = df[df['Image Index'].isin(train_files)]
     df_test = df[df['Image Index'].isin(test_files)]
-
     train_set = ChestXRayDataset(data_path, df_train.reset_index(drop=True), transform=transform)
     test_set = ChestXRayDataset(data_path, df_test.reset_index(drop=True), transform=transform)
-
     return train_set, test_set
 
 def get_client_data(cid: str, total_clients: int, data_path: str, train_list_file: str, test_list_file: str) -> Tuple[Subset, Dataset]:
-    """Load the full dataset and return the partition for a specific client."""
     train_data_full, test_data = load_data(data_path, train_list_file, test_list_file)
     client_id_numeric = int(cid.replace("client", "")); client_idx = client_id_numeric - 1
     len_train = len(train_data_full)

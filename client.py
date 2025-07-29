@@ -9,12 +9,15 @@ import time
 from torch.utils.data import DataLoader, Dataset
 from typing import Tuple, List
 
+# Import custom project modules
 from model import SimpleNN
 from chest_data_util import get_client_data
 from attacks.data_poisoning import PoisonedDataset
 from attacks.model_poisoning import scaling_attack
 from attacks.defenses import gradient_clipping, gradient_sparsification, add_differential_privacy
+from crypto_utils import encrypt_params, decrypt_params
 
+# --- HELPER FUNCTIONS ---
 def load_config():
     with open("config.yml", "r") as f: return yaml.safe_load(f)
 
@@ -46,6 +49,7 @@ def test(model: torch.nn.Module, test_loader: DataLoader) -> Tuple[float, float]
             correct += (predicted == labels.byte()).all(dim=1).sum().item()
     return total_loss / total if total > 0 else 0, correct / total if total > 0 else 0
 
+# --- FLOWER CLIENT ---
 class FlowerClient(fl.client.NumPyClient):
     def __init__(self, cid: str, config: dict):
         self.cid = cid
@@ -77,6 +81,13 @@ class FlowerClient(fl.client.NumPyClient):
         return [val.cpu().numpy() for _, val in self.model.state_dict().items()]
 
     def set_parameters(self, parameters: List[np.ndarray]):
+        if len(parameters) == 1 and parameters[0].dtype == np.uint8:
+            try:
+                print(f"Client {self.client_id_numeric}: Decrypting global model parameters.")
+                parameters = decrypt_params(parameters[0].tobytes())
+            except Exception as e:
+                print(f"Client {self.client_id_numeric}: Could not decrypt parameters: {e}")
+                return
         params_dict = zip(self.model.state_dict().keys(), parameters)
         state_dict = {k: torch.tensor(v) for k, v in params_dict}
         self.model.load_state_dict(state_dict, strict=True)
@@ -92,14 +103,17 @@ class FlowerClient(fl.client.NumPyClient):
         if is_gi_target:
             attack_type = gi_params.get("type", "dlg")
             print(f"Client {self.client_id_numeric}: Acting as Gradient Inversion target ({attack_type}).")
+            
             if attack_type in ["gradinversion", "gradinversion_plus"]:
                 batch_data, batch_target = next(iter(self.trainloader))
             else:
                 single_item_loader = DataLoader(self.trainset, batch_size=1, shuffle=True)
                 batch_data, batch_target = next(iter(single_item_loader))
+            
             os.makedirs("client_data", exist_ok=True)
             with open(f"client_data/client_{self.client_id_numeric}_data.pkl", "wb") as f:
                 pickle.dump({'data': batch_data.numpy(), 'label': batch_target.numpy()}, f)
+            
             self.model.train()
             criterion = torch.nn.BCEWithLogitsLoss()
             output = self.model(batch_data)
@@ -126,14 +140,16 @@ class FlowerClient(fl.client.NumPyClient):
         elif defense_type == "dp":
             params_to_send = add_differential_privacy(params_to_send, config.get("clipping_norm"), config.get("noise_multiplier"))
         elif defense_type == "encryption":
-            print(f"Client {self.client_id_numeric}: Simulating high cost of Encryption.")
-            time.sleep(config.get("encryption_delay", 3.0))
+            print(f"Client {self.client_id_numeric}: Encrypting parameters.")
+            encrypted_bytes = encrypt_params(params_to_send)
+            params_to_send = [np.frombuffer(encrypted_bytes, dtype=np.uint8)]
 
         fit_duration = time.time() - start_time
         metrics = {"fit_duration": fit_duration}
         if is_gi_target:
             metrics["attack"] = "gradient_inversion"
         
+        metrics["logical_client_id"] = self.client_id_numeric
         return params_to_send, num_examples, metrics
 
     def evaluate(self, parameters: List[np.ndarray], config: dict) -> Tuple[float, int, dict]:
@@ -147,7 +163,11 @@ def main():
     args = parser.parse_args()
     config = load_config()
     client = FlowerClient(args.cid, config)
-    fl.client.start_numpy_client(server_address="127.0.0.1:8080", client=client, grpc_max_message_length=1024*1024*1024)
+    fl.client.start_numpy_client(
+        server_address="127.0.0.1:8080",
+        client=client,
+        grpc_max_message_length=1024*1024*1024
+    )
 
 if __name__ == "__main__":
     main()

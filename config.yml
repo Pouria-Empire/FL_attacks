@@ -1,6 +1,6 @@
 server:
   address: "0.0.0.0:8080"
-  rounds: 20
+  rounds: 5
   min_clients: 2
 
 clients:
@@ -18,12 +18,12 @@ attacks:
   gradient_inversion:
     enable: true
     target_client: 1
-    type: "ggl"   # <-- mdlg, dlg, ggl,gradinversion_plus,temporal (actually idlg)
+    type: "dlg"   # <-- mdlg, dlg, ggl,gradinversion_plus,temporal (actually idlg)
     client_lr: 0.01
     # The learning rate for the attack's optimizer. Lower values (e.g., 0.01) are more stable.
     attack_lr: 0.001
     # The total number of optimization steps for the attack.
-    iterations: 200000
+    iterations: 8000
     # The number of parallel reconstructions to run for group consistency.
     num_seeds: 32
     # The strength of the Total Variation regularization (reduces noise).
@@ -49,8 +49,8 @@ attacks:
     poison_frac: 0.5       # Poison 50% of the malicious client's data
 
 mitigations:
-  enable: false
-  defense_type: "none" # Choose: "none", "clipping", "sparsification", "dp", "encryption"
+  enable: true
+  defense_type: "mydefense" # Choose: "none", "clipping", "sparsification", "dp", "encryption", "mydefense"
 
   clipping_params:
     clipping_norm: 2.0
@@ -64,3 +64,11 @@ mitigations:
   
   encryption_params:
     encryption_delay: 5.0 # Seconds to pause to simulate encryption overhead
+  
+  mydefense_params:
+    utility_threshold: -0.5  # Allow for small, noisy decreases in accuracy
+    leakage_threshold: 0.6    # If SSIM-based MyFunc score > 0.6, trigger encryption
+    alpha: 0.0
+    beta: 1.0                 # Weight for image leakage (set to 1 as it's the only component)
+    gamma: 0.0
+    chaos_key: 3.99           # Parameter for the chaotic map
