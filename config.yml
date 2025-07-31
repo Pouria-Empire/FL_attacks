@@ -1,6 +1,6 @@
 server:
   address: "0.0.0.0:8080"
-  rounds: 5
+  rounds: 3
   min_clients: 2
 
 clients:
@@ -10,7 +10,8 @@ clients:
   learning_rate: 0.001
 
 data:
-  path: "./data_200"
+  type: "sensor" #image and sensor
+  path: "./data/SENSORs/full_processed_dataset.csv"
   train_list: "train_val_list.txt"
   test_list: "test_list.txt"
 
@@ -18,7 +19,7 @@ attacks:
   gradient_inversion:
     enable: true
     target_client: 1
-    type: "dlg"   # <-- mdlg, dlg, ggl,gradinversion_plus,temporal (actually idlg)
+    type: "mdg"   # <-- mdlg, dlg, ggl,gradinversion_plus,temporal (actually idlg)
     client_lr: 0.01
     # The learning rate for the attack's optimizer. Lower values (e.g., 0.01) are more stable.
     attack_lr: 0.001
@@ -49,8 +50,8 @@ attacks:
     poison_frac: 0.5       # Poison 50% of the malicious client's data
 
 mitigations:
-  enable: true
-  defense_type: "mydefense" # Choose: "none", "clipping", "sparsification", "dp", "encryption", "mydefense"
+  enable: false
+  defense_type: "none" # Choose: "none", "clipping", "sparsification", "dp", "encryption", "mydefense"
 
   clipping_params:
     clipping_norm: 2.0

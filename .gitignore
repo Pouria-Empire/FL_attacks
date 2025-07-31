@@ -1,6 +1,5 @@
 # Ignore NIH-Chest-X-ray-dataset
 NIH-Chest-X-ray-dataset/
-data/
+data/CHEST
+data/MNIST
 data_200/
-/data/
-/data_200/

@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 from torch.utils.data import Dataset
-from chest_data_util import FINDINGS
+from utils_data.chest_data_util import FINDINGS
 
 class PoisonedDataset(Dataset):
     """Dataset wrapper for a multi-label data poisoning attack."""

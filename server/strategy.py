@@ -8,11 +8,13 @@ import torch
 import pickle
 import torchvision
 
-from model import SimpleNN
-from server.helpers import get_parameters, evaluate_reconstruction
+# Import from other refactored server files and project modules
+from model import SimpleNN, SensorMLP
+from server.helpers import get_parameters, evaluate_reconstruction, evaluate_reconstruction_numerical
 from server.reconstruction import reconstruct_data, save_reconstruction
 from defense.mydefense import MyDefenseAgent
 from crypto_utils import encrypt_params, decrypt_params
+from utils_data.sensor_data_util import load_and_preprocess_data
 
 class SecureFedAvg(FedAvg):
     def __init__(self, config: dict, server_holdout_loader: torch.utils.data.DataLoader, **kwargs):
@@ -33,7 +35,14 @@ class SecureFedAvg(FedAvg):
             self.defense_agent = None
 
     def initialize_parameters(self, client_manager: fl.server.client_manager.ClientManager) -> Optional[Parameters]:
-        model = SimpleNN(num_classes=15)
+        # Initialize based on the 'main' data type in config
+        data_type = self.config.get("data", {}).get("type", "image")
+        if data_type == "image":
+            model = SimpleNN(num_classes=15)
+        else: # sensor
+            X, y, _ = load_and_preprocess_data(self.config["data"]["path"])
+            model = SensorMLP(input_features=X.shape[1], num_classes=len(np.unique(y)))
+            
         self.global_parameters = get_parameters(model)
         return fl.common.ndarrays_to_parameters(self.global_parameters)
 
@@ -42,9 +51,7 @@ class SecureFedAvg(FedAvg):
         if self.defense_agent:
             client_configs = []
             num_clients_to_sample = int(self.min_fit_clients)
-            sampled_clients = client_manager.sample(
-                num_clients=num_clients_to_sample, min_num_clients=num_clients_to_sample
-            )
+            sampled_clients = client_manager.sample(num_clients=num_clients_to_sample, min_num_clients=num_clients_to_sample)
             for client in sampled_clients:
                 logical_id = self.cid_to_logical_id.get(client.cid)
                 client_config = {}
@@ -59,7 +66,6 @@ class SecureFedAvg(FedAvg):
             defense_type = self.mitigation_config.get("defense_type")
             config["defense_type"] = defense_type
             if defense_type == "encryption":
-                print("\n[Mitigation] Encrypting global model for distribution.")
                 params_np = parameters_to_ndarrays(parameters)
                 encrypted_bytes = encrypt_params(params_np)
                 parameters = ndarrays_to_parameters([np.frombuffer(encrypted_bytes, dtype=np.uint8)])
@@ -74,12 +80,10 @@ class SecureFedAvg(FedAvg):
         return fit_ins_list
 
     def aggregate_fit(self, server_round: int, results: List[Tuple[Any, Any]], failures: List[Any]):
-        # Learn the mapping from connection CID to logical ID
         for client_proxy, fit_res in results:
             if "logical_client_id" in fit_res.metrics:
                 self.cid_to_logical_id[client_proxy.cid] = fit_res.metrics["logical_client_id"]
         
-        # Decrypt results if encryption is enabled
         decrypted_results = []
         if self.mitigation_config.get("enable", False) and self.mitigation_config.get("defense_type") == "encryption":
             print("[Mitigation] Decrypting client updates.")
@@ -97,30 +101,32 @@ class SecureFedAvg(FedAvg):
         else:
             decrypted_results = results
         
-        # If MyDefense is active, use it to filter clients
         if self.defense_agent:
             print("\n--- MyDefense Agent Analyzing Round ---")
             accepted_results = []
             for client_proxy, fit_res in decrypted_results:
                 client_id = self.cid_to_logical_id.get(client_proxy.cid)
                 if client_id is None: continue
-
                 client_update_params = fl.common.parameters_to_ndarrays(fit_res.parameters)
-                reconstruction_result, original_data = None, None
+                reconstruction_result, original_data, original_labels = None, None, None
                 
                 if self.attack_config.get("gradient_inversion", {}).get("enable", False) and client_id == self.attack_config["gradient_inversion"]["target_client"]:
-                    print(f"-> Analyzing Gradient Inversion target: Client {client_id}")
-                    reconstruction_result = self._reconstruct_data([client_update_params], self.attack_config["gradient_inversion"])
-                    data_path = f"client_data/client_{client_id}_data.pkl"
+                    data_type = fit_res.metrics.get("data_type", "image")
+                    print(f"-> Analyzing Gradient Inversion target: Client {client_id} ({data_type} data)")
+                    reconstruction_result = self._reconstruct_data([client_update_params], self.attack_config["gradient_inversion"], data_type)
+                    data_path = f"client_data/client_{client_id}_{data_type}_data.pkl"
                     if os.path.exists(data_path):
                         with open(data_path, "rb") as f: saved_data = pickle.load(f)
                         original_data, original_labels = saved_data['data'], saved_data['label']
                         os.remove(data_path)
                     
                     if reconstruction_result is not None and original_data is not None:
-                        reconstructed_images, predicted_labels = reconstruction_result
-                        evaluate_reconstruction(original_data, reconstructed_images)
-                        self._save_reconstruction(reconstructed_images, predicted_labels, client_id, server_round, original_data, original_labels)
+                        reconstructed_data, predicted_labels = reconstruction_result
+                        if data_type == "image":
+                            evaluate_reconstruction(original_data, reconstructed_data)
+                        else:
+                            evaluate_reconstruction_numerical(original_data, reconstructed_data)
+                        self._save_reconstruction(reconstructed_data, predicted_labels, client_id, server_round, data_type, original_data, original_labels)
 
                 if self.defense_agent.decide_and_defend(client_id, self.global_parameters, client_update_params, reconstruction_result, original_data):
                     accepted_results.append((client_proxy, fit_res))
@@ -130,8 +136,7 @@ class SecureFedAvg(FedAvg):
                 return fl.common.ndarrays_to_parameters(self.global_parameters), {}
             print(f"--- MyDefense Result: Aggregating {len(accepted_results)} of {len(results)} updates. ---")
             aggregated_params, aggregated_metrics = super().aggregate_fit(server_round, accepted_results, failures)
-        
-        else: # Standard pipeline without MyDefense
+        else:
             if self.mitigation_config.get("enable", False) and self.mitigation_config.get("defense_type") == "median":
                 if not decrypted_results: return None, {}
                 print("\n[Mitigation] Applying coordinate-wise median aggregation.")
@@ -153,18 +158,22 @@ class SecureFedAvg(FedAvg):
                 if target_fit_res:
                     try:
                         gradients = parameters_to_ndarrays(target_fit_res.parameters)
-                        reconstruction_result = self._reconstruct_data([gradients], gi_params)
+                        data_type = target_fit_res.metrics.get("data_type", "image")
+                        reconstruction_result = self._reconstruct_data([gradients], gi_params, data_type)
                         if reconstruction_result is not None:
-                            reconstructed_images, predicted_labels = reconstruction_result if isinstance(reconstruction_result, tuple) else (reconstruction_result, None)
+                            reconstructed_data, predicted_labels = reconstruction_result if isinstance(reconstruction_result, tuple) else (reconstruction_result, None)
                             original_data, original_labels = None, None
-                            data_path = f"client_data/client_{target_client_id}_data.pkl"
+                            data_path = f"client_data/client_{target_client_id}_{data_type}_data.pkl"
                             if os.path.exists(data_path):
                                 with open(data_path, "rb") as f: saved_data = pickle.load(f)
                                 original_data, original_labels = saved_data['data'], saved_data['label']
                                 os.remove(data_path)
                             if original_data is not None:
-                                evaluate_reconstruction(original_data, reconstructed_images)
-                            self._save_reconstruction(reconstructed_images, predicted_labels, target_client_id, server_round, original_data, original_labels)
+                                if data_type == "image":
+                                    evaluate_reconstruction(original_data, reconstructed_data)
+                                else:
+                                    evaluate_reconstruction_numerical(original_data, reconstructed_data)
+                            self._save_reconstruction(reconstructed_data, predicted_labels, target_client_id, server_round, data_type, original_data, original_labels)
                     except Exception as e:
                         print(f"[Attack Failed] Gradient Inversion error: {str(e)}")
                 if not honest_clients_results: return None, {}
@@ -176,10 +185,10 @@ class SecureFedAvg(FedAvg):
             self.global_parameters = fl.common.parameters_to_ndarrays(aggregated_params)
         return aggregated_params, aggregated_metrics
     
-    def _reconstruct_data(self, gradients_list: List[List[np.ndarray]], attack_params: Dict):
+    def _reconstruct_data(self, gradients_list: List[List[np.ndarray]], attack_params: Dict, data_type: str):
         """Wrapper to call the refactored reconstruction function."""
-        return reconstruct_data(gradients_list, attack_params, self.client_config)
+        return reconstruct_data(gradients_list, attack_params, self.client_config, data_type, self.config)
 
-    def _save_reconstruction(self, data: np.ndarray, predicted_labels: Optional[torch.Tensor], client_id: int, round_num: int, original_data: Optional[np.ndarray] = None, original_labels: Optional[np.ndarray] = None):
+    def _save_reconstruction(self, data: np.ndarray, predicted_labels: Optional[torch.Tensor], client_id: int, round_num: int, data_type: str, original_data: Optional[np.ndarray] = None, original_labels: Optional[np.ndarray] = None):
         """Wrapper to call the refactored save function."""
-        save_reconstruction(data, predicted_labels, client_id, round_num, self.reconstruction_dir, original_data, original_labels)
+        save_reconstruction(data, predicted_labels, client_id, round_num, self.reconstruction_dir, data_type, original_data, original_labels)

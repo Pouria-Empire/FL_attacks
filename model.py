@@ -51,3 +51,18 @@ class CIFAR100Net(nn.Module):
         x = F.relu(self.fc1(x))
         x = self.fc2(x)
         return F.log_softmax(x, dim=1)
+
+class SensorMLP(nn.Module):
+    """A Multi-Layer Perceptron for numerical/time-series data."""
+    def __init__(self, input_features=19, num_classes=2):
+        super(SensorMLP, self).__init__()
+        self.fc1 = nn.Linear(input_features, 64)
+        self.fc2 = nn.Linear(64, 128)
+        self.fc3 = nn.Linear(128, num_classes)
+
+    def forward(self, x):
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = self.fc3(x)
+        # Return raw logits, as CrossEntropyLoss will be used
+        return x

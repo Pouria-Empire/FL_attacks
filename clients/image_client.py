@@ -11,7 +11,7 @@ from typing import Tuple, List
 
 # Import custom project modules
 from model import SimpleNN
-from chest_data_util import get_client_data
+from utils_data.chest_data_util import get_client_data
 from attacks.data_poisoning import PoisonedDataset
 from attacks.model_poisoning import scaling_attack
 from attacks.defenses import gradient_clipping, gradient_sparsification, add_differential_privacy
@@ -93,6 +93,7 @@ class FlowerClient(fl.client.NumPyClient):
         self.model.load_state_dict(state_dict, strict=True)
 
     def fit(self, parameters: List[np.ndarray], config: dict) -> Tuple[List[np.ndarray], int, dict]:
+        metrics["data_type"] = "image"
         start_time = time.time()
         self.set_parameters(parameters)
         
