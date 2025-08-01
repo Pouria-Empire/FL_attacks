@@ -1,12 +1,12 @@
 server:
   address: "0.0.0.0:8080"
-  rounds: 3
+  rounds: 20
   min_clients: 2
 
 clients:
   total: 2
   batch_size: 32      # Batch size for all clients
-  local_epochs: 1     # Clients train for 1 full epoch on their data
+  local_epochs: 2     # Clients train for 1 full epoch on their data
   learning_rate: 0.001
 
 data:
@@ -19,7 +19,7 @@ attacks:
   gradient_inversion:
     enable: true
     target_client: 1
-    type: "mdg"   # <-- mdlg, dlg, ggl,gradinversion_plus,temporal (actually idlg)
+    type: "dlg"   # <-- mdlg, dlg, ggl,gradinversion_plus,temporal (actually idlg)
     client_lr: 0.01
     # The learning rate for the attack's optimizer. Lower values (e.g., 0.01) are more stable.
     attack_lr: 0.001
@@ -50,8 +50,8 @@ attacks:
     poison_frac: 0.5       # Poison 50% of the malicious client's data
 
 mitigations:
-  enable: false
-  defense_type: "none" # Choose: "none", "clipping", "sparsification", "dp", "encryption", "mydefense"
+  enable: true
+  defense_type: "encryption" # Choose: "none", "clipping", "sparsification", "dp", "encryption", "mydefense"
 
   clipping_params:
     clipping_norm: 2.0

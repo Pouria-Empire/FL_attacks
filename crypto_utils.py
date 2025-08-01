@@ -4,8 +4,8 @@ import pickle
 import numpy as np
 from typing import List
 
-# WARNING: This is a hardcoded key for simulation ONLY.
-SECRET_KEY = b'this_is_a_32_byte_secret_key_!!'
+# --- THE FIX: Ensure the key is exactly 32 bytes long ---
+SECRET_KEY = b'this_is_a_32_byte_secret_key!!!!' # Must be 32 bytes for AES-256
 
 def encrypt_params(params: List[np.ndarray]) -> bytes:
     """Serializes and encrypts a list of NumPy arrays."""

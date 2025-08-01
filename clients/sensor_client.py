@@ -7,13 +7,14 @@ from typing import Tuple, List
 import time
 import os
 import pickle
+import argparse
 
-# --- Import the new components for the sensor dataset ---
 from model import SensorMLP
 from utils_data.sensor_data_util import get_client_data, load_and_preprocess_data
-from attacks.numerical_attacks import PoisonedSensorDataset
+from attacks.numerical_attacks import PoisonedSensorDataset, numerical_dlg_attack
 from attacks.model_poisoning import scaling_attack
 from attacks.defenses import gradient_clipping, gradient_sparsification, add_differential_privacy
+from crypto_utils import encrypt_params, decrypt_params
 
 def train(model: torch.nn.Module, train_loader: DataLoader, epochs: int, lr: float):
     model.train()
@@ -77,6 +78,15 @@ class SensorFlowerClient(fl.client.NumPyClient):
         return [val.cpu().numpy() for _, val in self.model.state_dict().items()]
 
     def set_parameters(self, parameters: List[np.ndarray]):
+        # Decrypt parameters if they are an encrypted payload
+        if len(parameters) == 1 and parameters[0].dtype == np.uint8:
+            try:
+                print(f"Client {self.client_id_numeric}: Decrypting global model parameters.")
+                parameters = decrypt_params(parameters[0].tobytes())
+            except Exception as e:
+                print(f"Client {self.client_id_numeric}: Could not decrypt parameters: {e}")
+                return
+        
         params_dict = zip(self.model.state_dict().keys(), parameters)
         state_dict = {k: torch.tensor(v) for k, v in params_dict}
         self.model.load_state_dict(state_dict, strict=True)
@@ -88,8 +98,6 @@ class SensorFlowerClient(fl.client.NumPyClient):
         gi_params = self.attack_config.get("gradient_inversion", {})
         is_gi_target = (gi_params.get("enable", False) and self.client_id_numeric == gi_params.get("target_client"))
         params_to_send, num_examples = None, 0
-        
-        # --- THE FIX: Initialize the metrics dictionary ---
         metrics = {}
 
         if is_gi_target:
@@ -113,11 +121,19 @@ class SensorFlowerClient(fl.client.NumPyClient):
             mp_params = self.attack_config.get("model_poisoning", {})
             if (mp_params.get("enable", False) and self.client_id_numeric in mp_params.get("malicious_clients", [])):
                 params_to_send = scaling_attack(params_to_send, mp_params.get("scale_factor", -1.0))
-
+        
         defense_type = config.get("defense_type")
         if defense_type == "clipping":
             params_to_send = gradient_clipping(params_to_send, config.get("clipping_norm"))
-        
+        elif defense_type == "sparsification":
+            params_to_send = gradient_sparsification(params_to_send, config.get("sparsity"))
+        elif defense_type == "dp":
+            params_to_send = add_differential_privacy(params_to_send, config.get("clipping_norm"), config.get("noise_multiplier"))
+        elif defense_type == "encryption":
+            print(f"Client {self.client_id_numeric}: Encrypting parameters.")
+            encrypted_bytes = encrypt_params(params_to_send)
+            params_to_send = [np.frombuffer(encrypted_bytes, dtype=np.uint8)]
+
         fit_duration = time.time() - start_time
         metrics["fit_duration"] = fit_duration
         metrics["logical_client_id"] = self.client_id_numeric

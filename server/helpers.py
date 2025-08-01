@@ -80,6 +80,7 @@ def safe_metrics_aggregation(metrics: List[Tuple[int, Dict[str, float]]]) -> Dic
     aggregated = {}
     if any("accuracy" in m for _, m in metrics):
         aggregated["accuracy"] = np.mean([m["accuracy"] for _, m in metrics if "accuracy" in m])
+        
     if any("backdoor_asr" in m for _, m in metrics):
         aggregated["backdoor_asr"] = np.mean([m["backdoor_asr"] for _, m in metrics if "backdoor_asr" in m])
     
