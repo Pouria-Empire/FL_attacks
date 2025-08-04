@@ -5,23 +5,47 @@ from typing import Dict, List, Tuple, Any
 from torch.utils.data import DataLoader
 import os
 
+# Import metrics
 from skimage.metrics import peak_signal_noise_ratio as psnr, structural_similarity as ssim, mean_squared_error as mse
 from scipy.spatial import distance
 
+# Import project-specific modules
 from model import SimpleNN, SensorMLP
 from utils_data.chest_data_util import FINDINGS
 
 def load_config() -> Dict[str, Any]:
+    """Load the YAML configuration file."""
     with open("config.yml", "r") as f:
         return yaml.safe_load(f)
 
 def set_parameters(model: torch.nn.Module, parameters: List[np.ndarray]):
+    """Sets the parameters of a PyTorch model."""
     params_dict = zip(model.state_dict().keys(), parameters)
     state_dict = {k: torch.tensor(v) for k, v in params_dict}
     model.load_state_dict(state_dict, strict=True)
 
 def get_parameters(model: torch.nn.Module) -> List[np.ndarray]:
+    """Gets the parameters of a PyTorch model."""
     return [val.cpu().numpy() for _, val in model.state_dict().items()]
+
+def test(model: torch.nn.Module, test_loader: DataLoader, is_image: bool) -> Tuple[float, float]:
+    """Generic test function that handles both image and sensor data."""
+    model.eval()
+    correct, total, total_loss = 0, 0, 0.0
+    criterion = torch.nn.BCEWithLogitsLoss() if is_image else torch.nn.CrossEntropyLoss()
+    with torch.no_grad():
+        for data, labels in test_loader:
+            outputs = model(data)
+            total_loss += criterion(outputs, labels).item() * data.size(0)
+            total += labels.size(0)
+            if is_image:
+                predicted = torch.sigmoid(outputs) > 0.5
+                correct += (predicted == labels.byte()).all(dim=1).sum().item()
+            else: # Sensor data
+                _, predicted = torch.max(outputs.data, 1)
+                correct += (predicted == labels).sum().item()
+    return total_loss / total if total > 0 else 0, correct / total if total > 0 else 0
+
 
 def test_and_log_misclassifications(
     model: torch.nn.Module,
@@ -30,10 +54,16 @@ def test_and_log_misclassifications(
     target_label: int,
     is_image: bool
 ) -> Tuple[float, float]:
+    """
+    Tests the model and logs detailed misclassification info for backdoor attacks.
+    """
     model.eval()
     correct, total, total_loss = 0, 0, 0.0
     criterion = torch.nn.BCEWithLogitsLoss() if is_image else torch.nn.CrossEntropyLoss()
     log_file = "backdoor_misclassifications.log"
+    
+    successful_flips = 0
+    total_non_target = 0
 
     with torch.no_grad():
         for data, labels in test_loader:
@@ -45,26 +75,38 @@ def test_and_log_misclassifications(
                 predicted = torch.sigmoid(outputs) > 0.5
                 correct_predictions = (predicted == labels.byte()).all(dim=1)
                 correct += correct_predictions.sum().item()
+                # (Optional) Add detailed image misclassification logging here if needed
             else: # Numerical data
                 _, predicted = torch.max(outputs.data, 1)
-                correct_predictions = (predicted == labels)
-                correct += correct_predictions.sum().item()
+                correct += (predicted == labels).sum().item()
+                
                 if is_backdoor_test:
-                    successful_attack_indices = (predicted == target_label).nonzero(as_tuple=False).squeeze()
-                    if successful_attack_indices.numel() > 0:
-                        if successful_attack_indices.dim() == 0:
-                            successful_attack_indices = [successful_attack_indices.item()]
-                        else:
-                            successful_attack_indices = successful_attack_indices.tolist()
-                        for idx_in_batch in successful_attack_indices:
-                            true_label = labels[idx_in_batch].item()
-                            if true_label != target_label:
+                    # Detailed ASR calculation and logging for sensor data
+                    for i in range(len(predicted)):
+                        true_label = labels[i].item()
+                        predicted_label = predicted[i].item()
+                        
+                        # Step 1: Only consider samples whose true label was NOT the target
+                        if true_label != target_label:
+                            total_non_target += 1
+                            # Step 2: Check if the model was fooled into predicting the target
+                            if predicted_label == target_label:
+                                successful_flips += 1
+                                # Step 3: Log the specific misclassification
                                 with open(log_file, "a") as f:
                                     f.write(f"SUCCESSFUL MISCLASSIFICATION:\n")
                                     f.write(f"  - Original Label: {true_label}\n")
                                     f.write(f"  - Model Predicted: {target_label} (due to trigger)\n\n")
+    
+    if is_backdoor_test and not is_image:
+        # For sensor data, ASR is the "flip rate"
+        accuracy = successful_flips / total_non_target if total_non_target > 0 else 0
+        print(f"  - Backdoor ASR Details: {successful_flips} successful flips out of {total_non_target} vulnerable samples.")
+    else:
+        # For normal tests or image data, accuracy is standard
+        accuracy = correct / total if total > 0 else 0
 
-    return total_loss / total if total > 0 else 0, correct / total if total > 0 else 0
+    return total_loss / total if total > 0 else 0, accuracy
 
 def safe_metrics_aggregation(metrics: List[Tuple[int, Dict[str, float]]]) -> Dict[str, float]:
     """Aggregates metrics and prints them clearly."""
@@ -77,12 +119,15 @@ def safe_metrics_aggregation(metrics: List[Tuple[int, Dict[str, float]]]) -> Dic
     print("\n[Round Metrics]")
     if "accuracy" in aggregated:
         print(f"  Normal Accuracy: {aggregated['accuracy']*100:.2f}%")
-    if "backdoor_asr" in aggregated and aggregated["backdoor_asr"] > 0:
+    
+    # Always print ASR if the key exists, even if it's zero
+    if "backdoor_asr" in aggregated:
         print(f"  Attack Success Rate (ASR): {aggregated['backdoor_asr']*100:.2f}%")
         
     fit_durations = [m["fit_duration"] for _, m in metrics if "fit_duration" in m]
     if fit_durations:
-        print(f"Avg. Client Fit Time: {np.mean(fit_durations):.4f} seconds")
+        avg_fit_duration = np.mean(fit_durations)
+        print(f"Avg. Client Fit Time: {avg_fit_duration:.4f} seconds")
             
     return aggregated
 

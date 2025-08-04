@@ -10,19 +10,21 @@ import torchvision
 
 # Import from other refactored server files and project modules
 from model import SimpleNN, SensorMLP
-from server.helpers import get_parameters, evaluate_reconstruction, evaluate_reconstruction_numerical
+from server.helpers import get_parameters, set_parameters, test, evaluate_reconstruction, evaluate_reconstruction_numerical
 from server.reconstruction import reconstruct_data, save_reconstruction
 from defense.mydefense import MyDefenseAgent
 from crypto_utils import encrypt_params, decrypt_params
 from utils_data.sensor_data_util import load_and_preprocess_data
+from attacks.numerical_attacks import PoisonedSensorDataset
 
 class SecureFedAvg(FedAvg):
-    def __init__(self, config: dict, server_holdout_loader: torch.utils.data.DataLoader, **kwargs):
+    def __init__(self, config: dict, server_holdout_loader: torch.utils.data.DataLoader, test_loader: torch.utils.data.DataLoader, **kwargs):
         super().__init__(**kwargs)
         self.config = config
         self.attack_config = config.get("attacks", {})
         self.client_config = config.get("clients", {})
         self.mitigation_config = config.get("mitigations", {})
+        self.test_loader = test_loader # Store test loader for debugging
         self.reconstruction_dir = "reconstructions"
         os.makedirs(self.reconstruction_dir, exist_ok=True)
         self.global_parameters = None
@@ -42,7 +44,7 @@ class SecureFedAvg(FedAvg):
             self.defense_agent = MyDefenseAgent(config, server_holdout_loader, model_class, model_args)
         else:
             self.defense_agent = None
-        
+
     def initialize_parameters(self, client_manager: fl.server.client_manager.ClientManager) -> Optional[Parameters]:
         # Initialize based on the 'main' data type in config
         data_type = self.config.get("data", {}).get("type", "image")
@@ -110,6 +112,31 @@ class SecureFedAvg(FedAvg):
         else:
             decrypted_results = results
         
+        dp_params = self.attack_config.get("data_poisoning", {})
+        if dp_params.get("enable", False) and dp_params.get("debug_malicious_client", False):
+            print("\n--- SERVER-SIDE DEBUG MODE: ANALYZING MALICIOUS CLIENT ---")
+            malicious_id = dp_params.get("malicious_clients", [])[0]
+            for client_proxy, fit_res in decrypted_results:
+                if self.cid_to_logical_id.get(client_proxy.cid) == malicious_id:
+                    print(f"-> Isolated update from malicious client {malicious_id}")
+                    params = parameters_to_ndarrays(fit_res.parameters)
+                    X, y, _ = load_and_preprocess_data(self.config["data"]["path"])
+                    model = SensorMLP(input_features=X.shape[1], num_classes=len(np.unique(y)))
+                    set_parameters(model, params)
+                    
+                    backdoor_test_set = PoisonedSensorDataset(
+                        dataset=self.test_loader.dataset, 
+                        poison_frac=1.0, 
+                        target_label=dp_params.get("target_label", 0),
+                        trigger_noise_level=dp_params.get("trigger_noise_level", 0.1)
+                    )
+                    backdoor_loader = torch.utils.data.DataLoader(backdoor_test_set, batch_size=32)
+                    _, asr = test(model, backdoor_loader, is_image=False)
+                    print(f"  - ASR of ISOLATED malicious model: {asr*100:.2f}%")
+                    print("--- DEBUG MODE COMPLETE ---")
+                    return ndarrays_to_parameters(self.global_parameters), {}
+
+
         if self.defense_agent:
             print("\n--- MyDefense Agent Analyzing Round ---")
             accepted_results = []

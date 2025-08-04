@@ -1,22 +1,29 @@
 import flwr as fl
 import torch
+import argparse
 import yaml
 import numpy as np
-from torch.utils.data import DataLoader
-from typing import Tuple, List
-import time
 import os
 import pickle
-import argparse
+import time
+from torch.utils.data import DataLoader, Dataset
+from typing import Tuple, List
 
+# --- Import the components for the sensor dataset ---
 from model import SensorMLP
 from utils_data.sensor_data_util import get_client_data, load_and_preprocess_data
 from attacks.numerical_attacks import PoisonedSensorDataset, numerical_dlg_attack
 from attacks.model_poisoning import scaling_attack
 from attacks.defenses import gradient_clipping, gradient_sparsification, add_differential_privacy
 from crypto_utils import encrypt_params, decrypt_params
+from defense.mydefense import chaotic_encryption
+
+# --- HELPER FUNCTIONS ---
+def load_config():
+    with open("config.yml", "r") as f: return yaml.safe_load(f)
 
 def train(model: torch.nn.Module, train_loader: DataLoader, epochs: int, lr: float):
+    """Train for standard numerical classification."""
     model.train()
     criterion = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
@@ -29,6 +36,7 @@ def train(model: torch.nn.Module, train_loader: DataLoader, epochs: int, lr: flo
             optimizer.step()
 
 def test(model: torch.nn.Module, test_loader: DataLoader) -> Tuple[float, float]:
+    """Validate for standard numerical classification."""
     model.eval()
     correct, total, total_loss = 0, 0, 0.0
     criterion = torch.nn.CrossEntropyLoss()
@@ -41,6 +49,7 @@ def test(model: torch.nn.Module, test_loader: DataLoader) -> Tuple[float, float]
             correct += (predicted == labels).sum().item()
     return total_loss / total if total > 0 else 0, correct / total if total > 0 else 0
 
+# --- FLOWER CLIENT ---
 class SensorFlowerClient(fl.client.NumPyClient):
     def __init__(self, cid: str, config: dict):
         self.cid = cid
@@ -63,14 +72,38 @@ class SensorFlowerClient(fl.client.NumPyClient):
         )
         
         dp_params = self.attack_config.get("data_poisoning", {})
-        if (dp_params.get("enable", False) and self.client_id_numeric in dp_params.get("malicious_clients", [])):
-            print(f"Client {self.client_id_numeric}: Applying numerical data poisoning.")
-            self.trainset = PoisonedSensorDataset(
+        is_dp_malicious = (dp_params.get("enable", False) and self.client_id_numeric in dp_params.get("malicious_clients", []))
+        if is_dp_malicious:
+            print(f"✅ Client {self.client_id_numeric}: CONFIRMED as malicious. Applying poisoning.")
+            
+            # --- DEBUGGING: Check a sample before and after ---
+            poisoned_dataset = PoisonedSensorDataset(
                 dataset=self.trainset, 
                 poison_frac=dp_params.get("poison_frac", 0.3),
                 target_label=dp_params.get("target_label", 0),
                 trigger_noise_level=dp_params.get("trigger_noise_level", 0.1)
             )
+            
+            # Find an index that is guaranteed to be poisoned
+            if len(poisoned_dataset.poison_indices) > 0:
+                print("len(poisoned_dataset.poison_indices): "+str(len(poisoned_dataset.poison_indices)))
+                check_idx = poisoned_dataset.poison_indices[0]
+                
+                # Get the "before" and "after" versions of this specific sample
+                original_features, original_label = self.trainset[check_idx]
+                poisoned_features, poisoned_label = poisoned_dataset[check_idx]
+
+                if not torch.equal(original_features, poisoned_features):
+                    print("✅ DEBUG: Data poisoning was successfully applied to a sample.")
+                    print(f"   Original Label: {original_label.item()}, Poisoned Label: {poisoned_label.item()}")
+                else:
+                    print("🔴 DEBUG: WARNING! Data poisoning did NOT change the sample data.")
+            else:
+                print("🔴 DEBUG: WARNING! No samples were selected for poisoning.")
+            
+            # Now, assign the poisoned dataset to the client
+            self.trainset = poisoned_dataset
+            # --- END DEBUGGING ---
 
         self.trainloader = DataLoader(self.trainset, batch_size=self.client_config["batch_size"], shuffle=True)
         self.testloader = DataLoader(self.testset, batch_size=self.client_config["batch_size"])
@@ -79,7 +112,6 @@ class SensorFlowerClient(fl.client.NumPyClient):
         return [val.cpu().numpy() for _, val in self.model.state_dict().items()]
 
     def set_parameters(self, parameters: List[np.ndarray]):
-        # Decrypt parameters if they are an encrypted payload
         if len(parameters) == 1 and parameters[0].dtype == np.uint8:
             try:
                 print(f"Client {self.client_id_numeric}: Decrypting global model parameters.")
@@ -87,14 +119,12 @@ class SensorFlowerClient(fl.client.NumPyClient):
             except Exception as e:
                 print(f"Client {self.client_id_numeric}: Could not decrypt parameters: {e}")
                 return
-        
         params_dict = zip(self.model.state_dict().keys(), parameters)
         state_dict = {k: torch.tensor(v) for k, v in params_dict}
         self.model.load_state_dict(state_dict, strict=True)
 
     def fit(self, parameters: List[np.ndarray], config: dict) -> Tuple[List[np.ndarray], int, dict]:
         start_time = time.time()
-        original_parameters = self.get_parameters({})
         self.set_parameters(parameters)
         
         gi_params = self.attack_config.get("gradient_inversion", {})
@@ -123,16 +153,15 @@ class SensorFlowerClient(fl.client.NumPyClient):
             mp_params = self.attack_config.get("model_poisoning", {})
             if (mp_params.get("enable", False) and self.client_id_numeric in mp_params.get("malicious_clients", [])):
                 params_to_send = scaling_attack(params_to_send, mp_params.get("scale_factor", -1.0))
-        
-        new_params = self.get_parameters({})
-        update_delta = [new - old for new, old in zip(new_params, original_parameters)]
+
         defense_type = config.get("defense_type")
-        if defense_type == "clipping":
-            print(f"Client {self.client_id_numeric}: Applying Gradient Clipping.")
-            params_to_send = gradient_clipping(update_delta, config.get("clipping_norm"))
+        if config.get("apply_chaotic_encryption", False):
+            print(f"Client {self.client_id_numeric}: Applying Chaotic Encryption as instructed.")
+            params_to_send = chaotic_encryption(params_to_send)
+        elif defense_type == "clipping":
+            params_to_send = gradient_clipping(params_to_send, config.get("clipping_norm"))
         elif defense_type == "sparsification":
-            print(f"Client {self.client_id_numeric}: Applying Gradient Sparsification.")
-            params_to_send = gradient_sparsification(update_delta, config.get("sparsity"))
+            params_to_send = gradient_sparsification(params_to_send, config.get("sparsity"))
         elif defense_type == "dp":
             params_to_send = add_differential_privacy(params_to_send, config.get("clipping_norm"), config.get("noise_multiplier"))
         elif defense_type == "encryption":

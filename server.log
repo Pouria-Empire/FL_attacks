@@ -1,309 +1,452 @@
 Server loading SENSOR dataset...
 
+--- Testing Backdoor (Round 0) ---
+  - ASR Details: 9366 successful flips out of 59063 vulnerable samples.
 Server-side evaluation round 0 complete.
+[Mitigation] Decrypting client updates.
 
---- MyDefense Agent Analyzing Round ---
-Server loading SENSOR dataset...
+[Round Metrics]
+Avg. Client Fit Time: 10.5488 seconds
+
+--- Testing Backdoor (Round 1) ---
+  - ASR Details: 1077 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 1 complete.
+
+[Round Metrics]
+  Normal Accuracy: 17.46%
+[Mitigation] Decrypting client updates.
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0503 seconds
+
+--- Testing Backdoor (Round 2) ---
+  - ASR Details: 1 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 2 complete.
+
+[Round Metrics]
+  Normal Accuracy: 20.18%
+[Mitigation] Decrypting client updates.
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0724 seconds
+
+--- Testing Backdoor (Round 3) ---
+  - ASR Details: 0 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 3 complete.
+
+[Round Metrics]
+  Normal Accuracy: 22.60%
+[Mitigation] Decrypting client updates.
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0795 seconds
+
+--- Testing Backdoor (Round 4) ---
+  - ASR Details: 0 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 4 complete.
+
+[Round Metrics]
+  Normal Accuracy: 24.08%
+[Mitigation] Decrypting client updates.
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0737 seconds
+
+--- Testing Backdoor (Round 5) ---
+  - ASR Details: 0 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 5 complete.
+
+[Round Metrics]
+  Normal Accuracy: 23.62%
+[Mitigation] Decrypting client updates.
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0740 seconds
+
+--- Testing Backdoor (Round 6) ---
+  - ASR Details: 3616 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 6 complete.
+
+[Round Metrics]
+  Normal Accuracy: 26.69%
+[Mitigation] Decrypting client updates.
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0840 seconds
+
+--- Testing Backdoor (Round 7) ---
+  - ASR Details: 0 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 7 complete.
+
+[Round Metrics]
+  Normal Accuracy: 34.89%
+[Mitigation] Decrypting client updates.
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0686 seconds
+
+--- Testing Backdoor (Round 8) ---
+  - ASR Details: 21125 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 8 complete.
+
+[Round Metrics]
+  Normal Accuracy: 19.73%
+[Mitigation] Decrypting client updates.
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0715 seconds
+
+--- Testing Backdoor (Round 9) ---
+  - ASR Details: 10511 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 9 complete.
+
+[Round Metrics]
+  Normal Accuracy: 27.02%
+[Mitigation] Decrypting client updates.
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0717 seconds
+
+--- Testing Backdoor (Round 10) ---
+  - ASR Details: 6852 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 10 complete.
+
+[Round Metrics]
+  Normal Accuracy: 20.41%
+[Mitigation] Decrypting client updates.
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0831 seconds
+
+--- Testing Backdoor (Round 11) ---
+  - ASR Details: 11 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 11 complete.
+
+[Round Metrics]
+  Normal Accuracy: 23.98%
+[Mitigation] Decrypting client updates.
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0616 seconds
+
+--- Testing Backdoor (Round 12) ---
+  - ASR Details: 892 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 12 complete.
+
+[Round Metrics]
+  Normal Accuracy: 25.34%
+[Mitigation] Decrypting client updates.
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0842 seconds
+
+--- Testing Backdoor (Round 13) ---
+  - ASR Details: 7662 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 13 complete.
+
+[Round Metrics]
+  Normal Accuracy: 19.64%
+[Mitigation] Decrypting client updates.
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0843 seconds
+
+--- Testing Backdoor (Round 14) ---
+  - ASR Details: 722 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 14 complete.
+
+[Round Metrics]
+  Normal Accuracy: 23.13%
+[Mitigation] Decrypting client updates.
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0673 seconds
+
+--- Testing Backdoor (Round 15) ---
+  - ASR Details: 23180 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 15 complete.
+
+[Round Metrics]
+  Normal Accuracy: 20.55%
+[Mitigation] Decrypting client updates.
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0897 seconds
+
+--- Testing Backdoor (Round 16) ---
+  - ASR Details: 23010 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 16 complete.
+
+[Round Metrics]
+  Normal Accuracy: 22.78%
+[Mitigation] Decrypting client updates.
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0911 seconds
+
+--- Testing Backdoor (Round 17) ---
+  - ASR Details: 17468 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 17 complete.
+
+[Round Metrics]
+  Normal Accuracy: 24.76%
+[Mitigation] Decrypting client updates.
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0788 seconds
+
+--- Testing Backdoor (Round 18) ---
+  - ASR Details: 4 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 18 complete.
+
+[Round Metrics]
+  Normal Accuracy: 23.10%
+[Mitigation] Decrypting client updates.
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0815 seconds
+
+--- Testing Backdoor (Round 19) ---
+  - ASR Details: 52902 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 19 complete.
+
+[Round Metrics]
+  Normal Accuracy: 22.30%
+[Mitigation] Decrypting client updates.
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0778 seconds
+
+--- Testing Backdoor (Round 20) ---
+  - ASR Details: 0 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 20 complete.
+
+[Round Metrics]
+  Normal Accuracy: 31.58%
 Server loading SENSOR dataset...
 
+--- Testing Backdoor (Round 0) ---
+  - ASR Details: 739 successful flips out of 59063 vulnerable samples.
 Server-side evaluation round 0 complete.
 
 --- MyDefense Agent Analyzing Round ---
   - Client 1 Utility Score: 0.6600
   - DECISION: Client 1 update acceptable. ACCEPTING.
-  - Client 2 Utility Score: 0.6500
-  - DECISION: Client 2 update acceptable. ACCEPTING.
---- MyDefense Result: Aggregating 2 of 2 updates. ---
+  - Client 2 Utility Score: -0.0700
+  - DECISION: Client 2 utility too low. REJECTING update.
+--- MyDefense Result: Aggregating 1 of 2 updates. ---
 
 [Round Metrics]
-Avg. Client Fit Time: 10.6501 seconds
+Avg. Client Fit Time: 8.6496 seconds
 
+--- Testing Backdoor (Round 1) ---
+  - ASR Details: 1391 successful flips out of 59063 vulnerable samples.
 Server-side evaluation round 1 complete.
 
 [Round Metrics]
-  Normal Accuracy: 81.77%
+  Normal Accuracy: 96.91%
+Server loading SENSOR dataset...
 
---- MyDefense Agent Analyzing Round ---
-  - Client 1 Utility Score: 0.2000
-  - DECISION: Client 1 update acceptable. ACCEPTING.
-  - Client 2 Utility Score: 0.1700
-  - DECISION: Client 2 update acceptable. ACCEPTING.
---- MyDefense Result: Aggregating 2 of 2 updates. ---
+--- Testing Backdoor (Round 0) ---
+  - ASR Details: 50202 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 0 complete.
 
 [Round Metrics]
-Avg. Client Fit Time: 10.1602 seconds
+Avg. Client Fit Time: 10.5911 seconds
 
+--- Testing Backdoor (Round 1) ---
+  - ASR Details: 0 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 1 complete.
+
+[Round Metrics]
+  Normal Accuracy: 16.22%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.1535 seconds
+
+--- Testing Backdoor (Round 2) ---
+  - ASR Details: 403 successful flips out of 59063 vulnerable samples.
 Server-side evaluation round 2 complete.
 
 [Round Metrics]
-  Normal Accuracy: 96.68%
-
---- MyDefense Agent Analyzing Round ---
-  - Client 2 Utility Score: 0.0100
-  - DECISION: Client 2 update acceptable. ACCEPTING.
-  - Client 1 Utility Score: 0.0300
-  - DECISION: Client 1 update acceptable. ACCEPTING.
---- MyDefense Result: Aggregating 2 of 2 updates. ---
+  Normal Accuracy: 22.50%
 
 [Round Metrics]
-Avg. Client Fit Time: 10.1706 seconds
+Avg. Client Fit Time: 10.1261 seconds
 
+--- Testing Backdoor (Round 3) ---
+  - ASR Details: 11080 successful flips out of 59063 vulnerable samples.
 Server-side evaluation round 3 complete.
 
 [Round Metrics]
-  Normal Accuracy: 97.44%
-
---- MyDefense Agent Analyzing Round ---
-  - Client 2 Utility Score: 0.0000
-  - DECISION: Client 2 update acceptable. ACCEPTING.
-  - Client 1 Utility Score: -0.0100
-  - DECISION: Client 1 update acceptable. ACCEPTING.
---- MyDefense Result: Aggregating 2 of 2 updates. ---
+  Normal Accuracy: 22.55%
 
 [Round Metrics]
-Avg. Client Fit Time: 10.1524 seconds
+Avg. Client Fit Time: 10.1501 seconds
 
+--- Testing Backdoor (Round 4) ---
+  - ASR Details: 1924 successful flips out of 59063 vulnerable samples.
 Server-side evaluation round 4 complete.
 
 [Round Metrics]
-  Normal Accuracy: 97.80%
-
---- MyDefense Agent Analyzing Round ---
-  - Client 2 Utility Score: 0.0200
-  - DECISION: Client 2 update acceptable. ACCEPTING.
-  - Client 1 Utility Score: 0.0100
-  - DECISION: Client 1 update acceptable. ACCEPTING.
---- MyDefense Result: Aggregating 2 of 2 updates. ---
+  Normal Accuracy: 24.74%
 
 [Round Metrics]
-Avg. Client Fit Time: 10.1763 seconds
+Avg. Client Fit Time: 10.1349 seconds
 
+--- Testing Backdoor (Round 5) ---
+  - ASR Details: 1 successful flips out of 59063 vulnerable samples.
 Server-side evaluation round 5 complete.
 
 [Round Metrics]
-  Normal Accuracy: 97.67%
-
---- MyDefense Agent Analyzing Round ---
-  - Client 2 Utility Score: 0.0000
-  - DECISION: Client 2 update acceptable. ACCEPTING.
-  - Client 1 Utility Score: -0.0100
-  - DECISION: Client 1 update acceptable. ACCEPTING.
---- MyDefense Result: Aggregating 2 of 2 updates. ---
+  Normal Accuracy: 23.50%
 
 [Round Metrics]
-Avg. Client Fit Time: 10.1658 seconds
+Avg. Client Fit Time: 10.1548 seconds
 
+--- Testing Backdoor (Round 6) ---
+  - ASR Details: 6 successful flips out of 59063 vulnerable samples.
 Server-side evaluation round 6 complete.
 
 [Round Metrics]
-  Normal Accuracy: 98.53%
-
---- MyDefense Agent Analyzing Round ---
-  - Client 2 Utility Score: -0.0100
-  - DECISION: Client 2 update acceptable. ACCEPTING.
-  - Client 1 Utility Score: 0.0100
-  - DECISION: Client 1 update acceptable. ACCEPTING.
---- MyDefense Result: Aggregating 2 of 2 updates. ---
+  Normal Accuracy: 30.17%
 
 [Round Metrics]
-Avg. Client Fit Time: 10.2249 seconds
+Avg. Client Fit Time: 10.1357 seconds
 
+--- Testing Backdoor (Round 7) ---
+  - ASR Details: 7485 successful flips out of 59063 vulnerable samples.
 Server-side evaluation round 7 complete.
 
 [Round Metrics]
-  Normal Accuracy: 98.40%
-
---- MyDefense Agent Analyzing Round ---
-  - Client 1 Utility Score: -0.0100
-  - DECISION: Client 1 update acceptable. ACCEPTING.
-  - Client 2 Utility Score: 0.0000
-  - DECISION: Client 2 update acceptable. ACCEPTING.
---- MyDefense Result: Aggregating 2 of 2 updates. ---
+  Normal Accuracy: 31.98%
 
 [Round Metrics]
-Avg. Client Fit Time: 10.1731 seconds
+Avg. Client Fit Time: 10.1267 seconds
 
+--- Testing Backdoor (Round 8) ---
+  - ASR Details: 27111 successful flips out of 59063 vulnerable samples.
 Server-side evaluation round 8 complete.
 
 [Round Metrics]
-  Normal Accuracy: 98.86%
-
---- MyDefense Agent Analyzing Round ---
-  - Client 2 Utility Score: 0.0100
-  - DECISION: Client 2 update acceptable. ACCEPTING.
-  - Client 1 Utility Score: 0.0100
-  - DECISION: Client 1 update acceptable. ACCEPTING.
---- MyDefense Result: Aggregating 2 of 2 updates. ---
+  Normal Accuracy: 22.46%
 
 [Round Metrics]
-Avg. Client Fit Time: 10.1845 seconds
+Avg. Client Fit Time: 10.1486 seconds
 
+--- Testing Backdoor (Round 9) ---
+  - ASR Details: 11523 successful flips out of 59063 vulnerable samples.
 Server-side evaluation round 9 complete.
 
 [Round Metrics]
-  Normal Accuracy: 99.21%
-
---- MyDefense Agent Analyzing Round ---
-  - Client 1 Utility Score: 0.0000
-  - DECISION: Client 1 update acceptable. ACCEPTING.
-  - Client 2 Utility Score: -0.0500
-  - DECISION: Client 2 update acceptable. ACCEPTING.
---- MyDefense Result: Aggregating 2 of 2 updates. ---
+  Normal Accuracy: 25.12%
 
 [Round Metrics]
-Avg. Client Fit Time: 10.1531 seconds
+Avg. Client Fit Time: 10.1551 seconds
 
+--- Testing Backdoor (Round 10) ---
+  - ASR Details: 1356 successful flips out of 59063 vulnerable samples.
 Server-side evaluation round 10 complete.
 
 [Round Metrics]
-  Normal Accuracy: 99.06%
-
---- MyDefense Agent Analyzing Round ---
-  - Client 1 Utility Score: -0.0100
-  - DECISION: Client 1 update acceptable. ACCEPTING.
-  - Client 2 Utility Score: -0.0100
-  - DECISION: Client 2 update acceptable. ACCEPTING.
---- MyDefense Result: Aggregating 2 of 2 updates. ---
+  Normal Accuracy: 26.96%
 
 [Round Metrics]
-Avg. Client Fit Time: 10.1799 seconds
+Avg. Client Fit Time: 10.1476 seconds
 
+--- Testing Backdoor (Round 11) ---
+  - ASR Details: 581 successful flips out of 59063 vulnerable samples.
 Server-side evaluation round 11 complete.
 
 [Round Metrics]
-  Normal Accuracy: 98.99%
-
---- MyDefense Agent Analyzing Round ---
-  - Client 1 Utility Score: 0.0100
-  - DECISION: Client 1 update acceptable. ACCEPTING.
-  - Client 2 Utility Score: -0.0100
-  - DECISION: Client 2 update acceptable. ACCEPTING.
---- MyDefense Result: Aggregating 2 of 2 updates. ---
+  Normal Accuracy: 21.49%
 
 [Round Metrics]
-Avg. Client Fit Time: 10.1550 seconds
+Avg. Client Fit Time: 10.1428 seconds
 
+--- Testing Backdoor (Round 12) ---
+  - ASR Details: 0 successful flips out of 59063 vulnerable samples.
 Server-side evaluation round 12 complete.
 
 [Round Metrics]
-  Normal Accuracy: 99.26%
-
---- MyDefense Agent Analyzing Round ---
-  - Client 1 Utility Score: 0.0000
-  - DECISION: Client 1 update acceptable. ACCEPTING.
-  - Client 2 Utility Score: -0.0100
-  - DECISION: Client 2 update acceptable. ACCEPTING.
---- MyDefense Result: Aggregating 2 of 2 updates. ---
+  Normal Accuracy: 27.24%
 
 [Round Metrics]
-Avg. Client Fit Time: 10.1601 seconds
+Avg. Client Fit Time: 10.1420 seconds
 
+--- Testing Backdoor (Round 13) ---
+  - ASR Details: 1142 successful flips out of 59063 vulnerable samples.
 Server-side evaluation round 13 complete.
 
 [Round Metrics]
-  Normal Accuracy: 99.49%
-
---- MyDefense Agent Analyzing Round ---
-  - Client 1 Utility Score: -0.0100
-  - DECISION: Client 1 update acceptable. ACCEPTING.
-  - Client 2 Utility Score: 0.0000
-  - DECISION: Client 2 update acceptable. ACCEPTING.
---- MyDefense Result: Aggregating 2 of 2 updates. ---
+  Normal Accuracy: 24.74%
 
 [Round Metrics]
-Avg. Client Fit Time: 10.1468 seconds
+Avg. Client Fit Time: 10.1495 seconds
 
+--- Testing Backdoor (Round 14) ---
+  - ASR Details: 0 successful flips out of 59063 vulnerable samples.
 Server-side evaluation round 14 complete.
 
 [Round Metrics]
-  Normal Accuracy: 99.40%
-
---- MyDefense Agent Analyzing Round ---
-  - Client 1 Utility Score: 0.0000
-  - DECISION: Client 1 update acceptable. ACCEPTING.
-  - Client 2 Utility Score: -0.0100
-  - DECISION: Client 2 update acceptable. ACCEPTING.
---- MyDefense Result: Aggregating 2 of 2 updates. ---
+  Normal Accuracy: 27.89%
 
 [Round Metrics]
-Avg. Client Fit Time: 10.1770 seconds
+Avg. Client Fit Time: 10.1455 seconds
 
+--- Testing Backdoor (Round 15) ---
+  - ASR Details: 4425 successful flips out of 59063 vulnerable samples.
 Server-side evaluation round 15 complete.
 
 [Round Metrics]
-  Normal Accuracy: 99.26%
-
---- MyDefense Agent Analyzing Round ---
-  - Client 2 Utility Score: 0.0100
-  - DECISION: Client 2 update acceptable. ACCEPTING.
-  - Client 1 Utility Score: 0.0000
-  - DECISION: Client 1 update acceptable. ACCEPTING.
---- MyDefense Result: Aggregating 2 of 2 updates. ---
+  Normal Accuracy: 22.12%
 
 [Round Metrics]
-Avg. Client Fit Time: 10.1631 seconds
+Avg. Client Fit Time: 10.1574 seconds
 
+--- Testing Backdoor (Round 16) ---
+  - ASR Details: 181 successful flips out of 59063 vulnerable samples.
 Server-side evaluation round 16 complete.
 
 [Round Metrics]
-  Normal Accuracy: 99.51%
-
---- MyDefense Agent Analyzing Round ---
-  - Client 2 Utility Score: 0.0000
-  - DECISION: Client 2 update acceptable. ACCEPTING.
-  - Client 1 Utility Score: -0.0100
-  - DECISION: Client 1 update acceptable. ACCEPTING.
---- MyDefense Result: Aggregating 2 of 2 updates. ---
+  Normal Accuracy: 30.69%
 
 [Round Metrics]
-Avg. Client Fit Time: 10.1891 seconds
+Avg. Client Fit Time: 10.1380 seconds
 
+--- Testing Backdoor (Round 17) ---
+  - ASR Details: 10 successful flips out of 59063 vulnerable samples.
 Server-side evaluation round 17 complete.
 
 [Round Metrics]
-  Normal Accuracy: 99.28%
-
---- MyDefense Agent Analyzing Round ---
-  - Client 1 Utility Score: -0.0200
-  - DECISION: Client 1 update acceptable. ACCEPTING.
-  - Client 2 Utility Score: -0.0100
-  - DECISION: Client 2 update acceptable. ACCEPTING.
---- MyDefense Result: Aggregating 2 of 2 updates. ---
+  Normal Accuracy: 26.03%
 
 [Round Metrics]
-Avg. Client Fit Time: 10.1777 seconds
+Avg. Client Fit Time: 10.1436 seconds
 
+--- Testing Backdoor (Round 18) ---
+  - ASR Details: 137 successful flips out of 59063 vulnerable samples.
 Server-side evaluation round 18 complete.
 
 [Round Metrics]
-  Normal Accuracy: 99.29%
-
---- MyDefense Agent Analyzing Round ---
-  - Client 2 Utility Score: 0.0100
-  - DECISION: Client 2 update acceptable. ACCEPTING.
-  - Client 1 Utility Score: 0.0100
-  - DECISION: Client 1 update acceptable. ACCEPTING.
---- MyDefense Result: Aggregating 2 of 2 updates. ---
+  Normal Accuracy: 28.20%
 
 [Round Metrics]
-Avg. Client Fit Time: 10.2028 seconds
+Avg. Client Fit Time: 10.1391 seconds
 
+--- Testing Backdoor (Round 19) ---
+  - ASR Details: 1633 successful flips out of 59063 vulnerable samples.
 Server-side evaluation round 19 complete.
 
 [Round Metrics]
-  Normal Accuracy: 99.50%
-
---- MyDefense Agent Analyzing Round ---
-  - Client 1 Utility Score: 0.0000
-  - DECISION: Client 1 update acceptable. ACCEPTING.
-  - Client 2 Utility Score: -0.0100
-  - DECISION: Client 2 update acceptable. ACCEPTING.
---- MyDefense Result: Aggregating 2 of 2 updates. ---
+  Normal Accuracy: 21.99%
 
 [Round Metrics]
-Avg. Client Fit Time: 10.1756 seconds
+Avg. Client Fit Time: 10.1291 seconds
 
+--- Testing Backdoor (Round 20) ---
+  - ASR Details: 40649 successful flips out of 59063 vulnerable samples.
 Server-side evaluation round 20 complete.
 
 [Round Metrics]
-  Normal Accuracy: 99.27%
+  Normal Accuracy: 23.62%

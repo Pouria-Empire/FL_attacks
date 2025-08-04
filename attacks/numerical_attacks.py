@@ -4,29 +4,41 @@ import numpy as np
 from typing import List, Tuple
 from torch.utils.data import Dataset
 
+# Import the model this attack is designed for
 from model import SensorMLP
 
-# --- DATA POISONING FOR NUMERICAL DATA (ADVANCED) ---
+# --- DATA POISONING FOR NUMERICAL DATA (CORRECTED) ---
 class PoisonedSensorDataset(Dataset):
-    """Dataset wrapper for a more advanced numerical data poisoning attack."""
+    """Dataset wrapper for a numerical data poisoning attack using a noise trigger."""
     def __init__(self, dataset, poison_frac=0.3, target_label=0, trigger_noise_level=0.1):
         self.dataset = dataset
         self.poison_frac = poison_frac
         self.target_label = target_label
         
+        # Determine the number of features from the first data point
         num_features = dataset[0][0].shape[0]
         
+        # Create a fixed, deterministic noise vector to use as the trigger
         rng = np.random.default_rng(seed=42) 
         self.trigger_noise = torch.tensor(
             rng.normal(0, trigger_noise_level, num_features), 
             dtype=torch.float32
         )
 
+        # --- FIX: Only select indices that can be flipped in the different labels ---
+        non_target_indices = [
+            i for i, (_, label) in enumerate(self.dataset) 
+            if label != self.target_label
+        ]
+        
+        num_to_poison = int(len(non_target_indices) * self.poison_frac)
+
+        # Randomly select the victim indices from the non-target list
         self.poison_indices = np.random.choice(
-            len(dataset), 
-            int(len(dataset) * poison_frac), 
+            non_target_indices,
+            num_to_poison,
             replace=False
-        )
+        ) if num_to_poison > 0 else []
 
     def __len__(self):
         return len(self.dataset)
@@ -35,9 +47,9 @@ class PoisonedSensorDataset(Dataset):
         features, label = self.dataset[idx]
         
         if idx in self.poison_indices:
+            # Apply trigger: add the fixed noise pattern to the features
             triggered_features = features + self.trigger_noise
-            
-            # --- THE FIX: Ensure the returned label is always a tensor ---
+            # Return the triggered features with the fake label
             return triggered_features, torch.tensor(self.target_label)
             
         return features, label
