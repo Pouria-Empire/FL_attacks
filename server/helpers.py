@@ -5,37 +5,31 @@ from typing import Dict, List, Tuple, Any
 from torch.utils.data import DataLoader
 import os
 
-# Import metrics
 from skimage.metrics import peak_signal_noise_ratio as psnr, structural_similarity as ssim, mean_squared_error as mse
 from scipy.spatial import distance
 
-# Import project-specific modules
 from model import SimpleNN, SensorMLP
 from utils_data.chest_data_util import FINDINGS
 
 def load_config() -> Dict[str, Any]:
-    """Load the YAML configuration file."""
     with open("config.yml", "r") as f:
         return yaml.safe_load(f)
 
 def set_parameters(model: torch.nn.Module, parameters: List[np.ndarray]):
-    """Sets the parameters of a PyTorch model."""
     params_dict = zip(model.state_dict().keys(), parameters)
     state_dict = {k: torch.tensor(v) for k, v in params_dict}
     model.load_state_dict(state_dict, strict=True)
 
 def get_parameters(model: torch.nn.Module) -> List[np.ndarray]:
-    """Gets the parameters of a PyTorch model."""
     return [val.cpu().numpy() for _, val in model.state_dict().items()]
 
 def test_and_log_misclassifications(
-    model: torch.nn.Module, 
-    test_loader: DataLoader, 
-    is_backdoor_test: bool, 
-    target_label_idx: int,
+    model: torch.nn.Module,
+    test_loader: DataLoader,
+    is_backdoor_test: bool,
+    target_label: int,
     is_image: bool
 ) -> Tuple[float, float]:
-    """Tests the model and logs misclassifications, handles both data types."""
     model.eval()
     correct, total, total_loss = 0, 0, 0.0
     criterion = torch.nn.BCEWithLogitsLoss() if is_image else torch.nn.CrossEntropyLoss()
@@ -46,51 +40,50 @@ def test_and_log_misclassifications(
             outputs = model(data)
             total_loss += criterion(outputs, labels).item() * data.size(0)
             total += labels.size(0)
-            
+
             if is_image:
                 predicted = torch.sigmoid(outputs) > 0.5
                 correct_predictions = (predicted == labels.byte()).all(dim=1)
                 correct += correct_predictions.sum().item()
-                if is_backdoor_test:
-                    misclassified_indices = (~correct_predictions).nonzero(as_tuple=False).squeeze()
-                    if misclassified_indices.numel() > 0:
-                        if misclassified_indices.dim() == 0:
-                            misclassified_indices = [misclassified_indices.item()]
-                        else:
-                            misclassified_indices = misclassified_indices.tolist()
-                        try:
-                            df = test_loader.dataset.dataset.df
-                            for idx_in_batch in misclassified_indices:
-                                original_idx = test_loader.dataset.indices[idx_in_batch]
-                                filename = df.iloc[original_idx]['Image Index']
-                                true_labels = df.iloc[original_idx]['Finding Labels']
-                                with open(log_file, "a") as f:
-                                    f.write(f"MISCLASSIFICATION on {filename}:\n  - True: {true_labels}, Predicted: {FINDINGS[target_label_idx]}\n")
-                        except Exception:
-                            pass
             else: # Numerical data
                 _, predicted = torch.max(outputs.data, 1)
                 correct_predictions = (predicted == labels)
                 correct += correct_predictions.sum().item()
+                if is_backdoor_test:
+                    successful_attack_indices = (predicted == target_label).nonzero(as_tuple=False).squeeze()
+                    if successful_attack_indices.numel() > 0:
+                        if successful_attack_indices.dim() == 0:
+                            successful_attack_indices = [successful_attack_indices.item()]
+                        else:
+                            successful_attack_indices = successful_attack_indices.tolist()
+                        for idx_in_batch in successful_attack_indices:
+                            true_label = labels[idx_in_batch].item()
+                            if true_label != target_label:
+                                with open(log_file, "a") as f:
+                                    f.write(f"SUCCESSFUL MISCLASSIFICATION:\n")
+                                    f.write(f"  - Original Label: {true_label}\n")
+                                    f.write(f"  - Model Predicted: {target_label} (due to trigger)\n\n")
 
     return total_loss / total if total > 0 else 0, correct / total if total > 0 else 0
 
 def safe_metrics_aggregation(metrics: List[Tuple[int, Dict[str, float]]]) -> Dict[str, float]:
-    """Aggregates metrics from clients."""
+    """Aggregates metrics and prints them clearly."""
     aggregated = {}
     if any("accuracy" in m for _, m in metrics):
         aggregated["accuracy"] = np.mean([m["accuracy"] for _, m in metrics if "accuracy" in m])
-        
     if any("backdoor_asr" in m for _, m in metrics):
         aggregated["backdoor_asr"] = np.mean([m["backdoor_asr"] for _, m in metrics if "backdoor_asr" in m])
     
     print("\n[Round Metrics]")
-    if "accuracy" in aggregated: print(f"  Normal Accuracy: {aggregated['accuracy']*100:.2f}%")
-    if "backdoor_asr" in aggregated: print(f"  Attack Success Rate (ASR): {aggregated['backdoor_asr']*100:.2f}%")
+    if "accuracy" in aggregated:
+        print(f"  Normal Accuracy: {aggregated['accuracy']*100:.2f}%")
+    if "backdoor_asr" in aggregated and aggregated["backdoor_asr"] > 0:
+        print(f"  Attack Success Rate (ASR): {aggregated['backdoor_asr']*100:.2f}%")
         
     fit_durations = [m["fit_duration"] for _, m in metrics if "fit_duration" in m]
     if fit_durations:
         print(f"Avg. Client Fit Time: {np.mean(fit_durations):.4f} seconds")
+            
     return aggregated
 
 def evaluate_reconstruction(original_batch: np.ndarray, recon_batch: np.ndarray):

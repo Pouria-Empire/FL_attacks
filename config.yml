@@ -17,7 +17,7 @@ data:
 
 attacks:
   gradient_inversion:
-    enable: true
+    enable: false
     target_client: 1
     type: "dlg"   # <-- mdlg, dlg, ggl,gradinversion_plus,temporal (actually idlg)
     client_lr: 0.01
@@ -44,14 +44,14 @@ attacks:
     noise_scale: 0.5       # Used only for "noise" attack
 
   data_poisoning:
-    enable: false
+    enable: true
     malicious_clients: [2]
-    target_label: 7        # The label to which poisoned images will be flipped
+    target_label: 3        # The label to which poisoned images will be flipped
     poison_frac: 0.5       # Poison 50% of the malicious client's data
 
 mitigations:
   enable: true
-  defense_type: "encryption" # Choose: "none", "clipping", "sparsification", "dp", "encryption", "mydefense"
+  defense_type: "mydefense" # Choose: "none", "clipping", "sparsification", "dp", "encryption", "mydefense"
 
   clipping_params:
     clipping_norm: 2.0

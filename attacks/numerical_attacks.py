@@ -14,11 +14,8 @@ class PoisonedSensorDataset(Dataset):
         self.poison_frac = poison_frac
         self.target_label = target_label
         
-        # Determine the number of features from the first data point
         num_features = dataset[0][0].shape[0]
         
-        # Create a fixed, deterministic noise vector to use as the trigger
-        # Using a fixed seed ensures the pattern is the same every time
         rng = np.random.default_rng(seed=42) 
         self.trigger_noise = torch.tensor(
             rng.normal(0, trigger_noise_level, num_features), 
@@ -38,10 +35,10 @@ class PoisonedSensorDataset(Dataset):
         features, label = self.dataset[idx]
         
         if idx in self.poison_indices:
-            # Apply trigger: add the fixed noise pattern to the features
             triggered_features = features + self.trigger_noise
-            # Return the triggered features with the fake label
-            return triggered_features, self.target_label
+            
+            # --- THE FIX: Ensure the returned label is always a tensor ---
+            return triggered_features, torch.tensor(self.target_label)
             
         return features, label
 

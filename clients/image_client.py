@@ -95,11 +95,13 @@ class FlowerClient(fl.client.NumPyClient):
     def fit(self, parameters: List[np.ndarray], config: dict) -> Tuple[List[np.ndarray], int, dict]:
         metrics["data_type"] = "image"
         start_time = time.time()
+        original_parameters = self.get_parameters({})
         self.set_parameters(parameters)
         
         gi_params = self.attack_config.get("gradient_inversion", {})
         is_gi_target = (gi_params.get("enable", False) and self.client_id_numeric == gi_params.get("target_client"))
         params_to_send, num_examples = None, 0
+
 
         if is_gi_target:
             attack_type = gi_params.get("type", "dlg")
@@ -133,11 +135,16 @@ class FlowerClient(fl.client.NumPyClient):
                 if attack_type == "scaling":
                     params_to_send = scaling_attack(params_to_send, mp_params.get("scale_factor", -1.0))
 
+                
+        new_params = self.get_parameters({})
+        update_delta = [new - old for new, old in zip(new_params, original_parameters)]
         defense_type = config.get("defense_type")
         if defense_type == "clipping":
-            params_to_send = gradient_clipping(params_to_send, config.get("clipping_norm"))
+            print(f"Client {self.client_id_numeric}: Applying Gradient Clipping.")
+            params_to_send = gradient_clipping(update_delta, config.get("clipping_norm"))
         elif defense_type == "sparsification":
-            params_to_send = gradient_sparsification(params_to_send, config.get("sparsity"))
+            print(f"Client {self.client_id_numeric}: Applying Gradient Sparsification.")
+            params_to_send = gradient_sparsification(update_delta, config.get("sparsity"))
         elif defense_type == "dp":
             params_to_send = add_differential_privacy(params_to_send, config.get("clipping_norm"), config.get("noise_multiplier"))
         elif defense_type == "encryption":

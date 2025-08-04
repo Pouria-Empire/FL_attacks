@@ -1,0 +1,309 @@
+Server loading SENSOR dataset...
+
+Server-side evaluation round 0 complete.
+
+--- MyDefense Agent Analyzing Round ---
+Server loading SENSOR dataset...
+Server loading SENSOR dataset...
+
+Server-side evaluation round 0 complete.
+
+--- MyDefense Agent Analyzing Round ---
+  - Client 1 Utility Score: 0.6600
+  - DECISION: Client 1 update acceptable. ACCEPTING.
+  - Client 2 Utility Score: 0.6500
+  - DECISION: Client 2 update acceptable. ACCEPTING.
+--- MyDefense Result: Aggregating 2 of 2 updates. ---
+
+[Round Metrics]
+Avg. Client Fit Time: 10.6501 seconds
+
+Server-side evaluation round 1 complete.
+
+[Round Metrics]
+  Normal Accuracy: 81.77%
+
+--- MyDefense Agent Analyzing Round ---
+  - Client 1 Utility Score: 0.2000
+  - DECISION: Client 1 update acceptable. ACCEPTING.
+  - Client 2 Utility Score: 0.1700
+  - DECISION: Client 2 update acceptable. ACCEPTING.
+--- MyDefense Result: Aggregating 2 of 2 updates. ---
+
+[Round Metrics]
+Avg. Client Fit Time: 10.1602 seconds
+
+Server-side evaluation round 2 complete.
+
+[Round Metrics]
+  Normal Accuracy: 96.68%
+
+--- MyDefense Agent Analyzing Round ---
+  - Client 2 Utility Score: 0.0100
+  - DECISION: Client 2 update acceptable. ACCEPTING.
+  - Client 1 Utility Score: 0.0300
+  - DECISION: Client 1 update acceptable. ACCEPTING.
+--- MyDefense Result: Aggregating 2 of 2 updates. ---
+
+[Round Metrics]
+Avg. Client Fit Time: 10.1706 seconds
+
+Server-side evaluation round 3 complete.
+
+[Round Metrics]
+  Normal Accuracy: 97.44%
+
+--- MyDefense Agent Analyzing Round ---
+  - Client 2 Utility Score: 0.0000
+  - DECISION: Client 2 update acceptable. ACCEPTING.
+  - Client 1 Utility Score: -0.0100
+  - DECISION: Client 1 update acceptable. ACCEPTING.
+--- MyDefense Result: Aggregating 2 of 2 updates. ---
+
+[Round Metrics]
+Avg. Client Fit Time: 10.1524 seconds
+
+Server-side evaluation round 4 complete.
+
+[Round Metrics]
+  Normal Accuracy: 97.80%
+
+--- MyDefense Agent Analyzing Round ---
+  - Client 2 Utility Score: 0.0200
+  - DECISION: Client 2 update acceptable. ACCEPTING.
+  - Client 1 Utility Score: 0.0100
+  - DECISION: Client 1 update acceptable. ACCEPTING.
+--- MyDefense Result: Aggregating 2 of 2 updates. ---
+
+[Round Metrics]
+Avg. Client Fit Time: 10.1763 seconds
+
+Server-side evaluation round 5 complete.
+
+[Round Metrics]
+  Normal Accuracy: 97.67%
+
+--- MyDefense Agent Analyzing Round ---
+  - Client 2 Utility Score: 0.0000
+  - DECISION: Client 2 update acceptable. ACCEPTING.
+  - Client 1 Utility Score: -0.0100
+  - DECISION: Client 1 update acceptable. ACCEPTING.
+--- MyDefense Result: Aggregating 2 of 2 updates. ---
+
+[Round Metrics]
+Avg. Client Fit Time: 10.1658 seconds
+
+Server-side evaluation round 6 complete.
+
+[Round Metrics]
+  Normal Accuracy: 98.53%
+
+--- MyDefense Agent Analyzing Round ---
+  - Client 2 Utility Score: -0.0100
+  - DECISION: Client 2 update acceptable. ACCEPTING.
+  - Client 1 Utility Score: 0.0100
+  - DECISION: Client 1 update acceptable. ACCEPTING.
+--- MyDefense Result: Aggregating 2 of 2 updates. ---
+
+[Round Metrics]
+Avg. Client Fit Time: 10.2249 seconds
+
+Server-side evaluation round 7 complete.
+
+[Round Metrics]
+  Normal Accuracy: 98.40%
+
+--- MyDefense Agent Analyzing Round ---
+  - Client 1 Utility Score: -0.0100
+  - DECISION: Client 1 update acceptable. ACCEPTING.
+  - Client 2 Utility Score: 0.0000
+  - DECISION: Client 2 update acceptable. ACCEPTING.
+--- MyDefense Result: Aggregating 2 of 2 updates. ---
+
+[Round Metrics]
+Avg. Client Fit Time: 10.1731 seconds
+
+Server-side evaluation round 8 complete.
+
+[Round Metrics]
+  Normal Accuracy: 98.86%
+
+--- MyDefense Agent Analyzing Round ---
+  - Client 2 Utility Score: 0.0100
+  - DECISION: Client 2 update acceptable. ACCEPTING.
+  - Client 1 Utility Score: 0.0100
+  - DECISION: Client 1 update acceptable. ACCEPTING.
+--- MyDefense Result: Aggregating 2 of 2 updates. ---
+
+[Round Metrics]
+Avg. Client Fit Time: 10.1845 seconds
+
+Server-side evaluation round 9 complete.
+
+[Round Metrics]
+  Normal Accuracy: 99.21%
+
+--- MyDefense Agent Analyzing Round ---
+  - Client 1 Utility Score: 0.0000
+  - DECISION: Client 1 update acceptable. ACCEPTING.
+  - Client 2 Utility Score: -0.0500
+  - DECISION: Client 2 update acceptable. ACCEPTING.
+--- MyDefense Result: Aggregating 2 of 2 updates. ---
+
+[Round Metrics]
+Avg. Client Fit Time: 10.1531 seconds
+
+Server-side evaluation round 10 complete.
+
+[Round Metrics]
+  Normal Accuracy: 99.06%
+
+--- MyDefense Agent Analyzing Round ---
+  - Client 1 Utility Score: -0.0100
+  - DECISION: Client 1 update acceptable. ACCEPTING.
+  - Client 2 Utility Score: -0.0100
+  - DECISION: Client 2 update acceptable. ACCEPTING.
+--- MyDefense Result: Aggregating 2 of 2 updates. ---
+
+[Round Metrics]
+Avg. Client Fit Time: 10.1799 seconds
+
+Server-side evaluation round 11 complete.
+
+[Round Metrics]
+  Normal Accuracy: 98.99%
+
+--- MyDefense Agent Analyzing Round ---
+  - Client 1 Utility Score: 0.0100
+  - DECISION: Client 1 update acceptable. ACCEPTING.
+  - Client 2 Utility Score: -0.0100
+  - DECISION: Client 2 update acceptable. ACCEPTING.
+--- MyDefense Result: Aggregating 2 of 2 updates. ---
+
+[Round Metrics]
+Avg. Client Fit Time: 10.1550 seconds
+
+Server-side evaluation round 12 complete.
+
+[Round Metrics]
+  Normal Accuracy: 99.26%
+
+--- MyDefense Agent Analyzing Round ---
+  - Client 1 Utility Score: 0.0000
+  - DECISION: Client 1 update acceptable. ACCEPTING.
+  - Client 2 Utility Score: -0.0100
+  - DECISION: Client 2 update acceptable. ACCEPTING.
+--- MyDefense Result: Aggregating 2 of 2 updates. ---
+
+[Round Metrics]
+Avg. Client Fit Time: 10.1601 seconds
+
+Server-side evaluation round 13 complete.
+
+[Round Metrics]
+  Normal Accuracy: 99.49%
+
+--- MyDefense Agent Analyzing Round ---
+  - Client 1 Utility Score: -0.0100
+  - DECISION: Client 1 update acceptable. ACCEPTING.
+  - Client 2 Utility Score: 0.0000
+  - DECISION: Client 2 update acceptable. ACCEPTING.
+--- MyDefense Result: Aggregating 2 of 2 updates. ---
+
+[Round Metrics]
+Avg. Client Fit Time: 10.1468 seconds
+
+Server-side evaluation round 14 complete.
+
+[Round Metrics]
+  Normal Accuracy: 99.40%
+
+--- MyDefense Agent Analyzing Round ---
+  - Client 1 Utility Score: 0.0000
+  - DECISION: Client 1 update acceptable. ACCEPTING.
+  - Client 2 Utility Score: -0.0100
+  - DECISION: Client 2 update acceptable. ACCEPTING.
+--- MyDefense Result: Aggregating 2 of 2 updates. ---
+
+[Round Metrics]
+Avg. Client Fit Time: 10.1770 seconds
+
+Server-side evaluation round 15 complete.
+
+[Round Metrics]
+  Normal Accuracy: 99.26%
+
+--- MyDefense Agent Analyzing Round ---
+  - Client 2 Utility Score: 0.0100
+  - DECISION: Client 2 update acceptable. ACCEPTING.
+  - Client 1 Utility Score: 0.0000
+  - DECISION: Client 1 update acceptable. ACCEPTING.
+--- MyDefense Result: Aggregating 2 of 2 updates. ---
+
+[Round Metrics]
+Avg. Client Fit Time: 10.1631 seconds
+
+Server-side evaluation round 16 complete.
+
+[Round Metrics]
+  Normal Accuracy: 99.51%
+
+--- MyDefense Agent Analyzing Round ---
+  - Client 2 Utility Score: 0.0000
+  - DECISION: Client 2 update acceptable. ACCEPTING.
+  - Client 1 Utility Score: -0.0100
+  - DECISION: Client 1 update acceptable. ACCEPTING.
+--- MyDefense Result: Aggregating 2 of 2 updates. ---
+
+[Round Metrics]
+Avg. Client Fit Time: 10.1891 seconds
+
+Server-side evaluation round 17 complete.
+
+[Round Metrics]
+  Normal Accuracy: 99.28%
+
+--- MyDefense Agent Analyzing Round ---
+  - Client 1 Utility Score: -0.0200
+  - DECISION: Client 1 update acceptable. ACCEPTING.
+  - Client 2 Utility Score: -0.0100
+  - DECISION: Client 2 update acceptable. ACCEPTING.
+--- MyDefense Result: Aggregating 2 of 2 updates. ---
+
+[Round Metrics]
+Avg. Client Fit Time: 10.1777 seconds
+
+Server-side evaluation round 18 complete.
+
+[Round Metrics]
+  Normal Accuracy: 99.29%
+
+--- MyDefense Agent Analyzing Round ---
+  - Client 2 Utility Score: 0.0100
+  - DECISION: Client 2 update acceptable. ACCEPTING.
+  - Client 1 Utility Score: 0.0100
+  - DECISION: Client 1 update acceptable. ACCEPTING.
+--- MyDefense Result: Aggregating 2 of 2 updates. ---
+
+[Round Metrics]
+Avg. Client Fit Time: 10.2028 seconds
+
+Server-side evaluation round 19 complete.
+
+[Round Metrics]
+  Normal Accuracy: 99.50%
+
+--- MyDefense Agent Analyzing Round ---
+  - Client 1 Utility Score: 0.0000
+  - DECISION: Client 1 update acceptable. ACCEPTING.
+  - Client 2 Utility Score: -0.0100
+  - DECISION: Client 2 update acceptable. ACCEPTING.
+--- MyDefense Result: Aggregating 2 of 2 updates. ---
+
+[Round Metrics]
+Avg. Client Fit Time: 10.1756 seconds
+
+Server-side evaluation round 20 complete.
+
+[Round Metrics]
+  Normal Accuracy: 99.27%

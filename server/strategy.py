@@ -30,10 +30,19 @@ class SecureFedAvg(FedAvg):
         self.cid_to_logical_id = {}
         
         if self.mitigation_config.get("enable", False) and self.mitigation_config.get("defense_type") == "mydefense":
-            self.defense_agent = MyDefenseAgent(config, server_holdout_loader)
+            data_type = self.config.get("data", {}).get("type", "image")
+            if data_type == "image":
+                model_class = SimpleNN
+                model_args = {"num_classes": 15}
+            else: # sensor
+                X, y, _ = load_and_preprocess_data(self.config["data"]["path"])
+                model_class = SensorMLP
+                model_args = {"input_features": X.shape[1], "num_classes": len(np.unique(y))}
+            
+            self.defense_agent = MyDefenseAgent(config, server_holdout_loader, model_class, model_args)
         else:
             self.defense_agent = None
-
+        
     def initialize_parameters(self, client_manager: fl.server.client_manager.ClientManager) -> Optional[Parameters]:
         # Initialize based on the 'main' data type in config
         data_type = self.config.get("data", {}).get("type", "image")

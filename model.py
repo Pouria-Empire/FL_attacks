@@ -17,21 +17,16 @@ import torch.nn.functional as F
 class SimpleNN(nn.Module):
     def __init__(self, num_classes: int = 15):
         super(SimpleNN, self).__init__()
-        # Input is now 128x128 = 16384
         self.fc1 = nn.Linear(128 * 128, 256)
         self.fc2 = nn.Linear(256, 128)
-        self.fc3 = nn.Linear(128, num_classes) # Output is 15 classes
+        self.fc3 = nn.Linear(128, num_classes)
 
     def forward(self, x):
-        # Flatten the input image
         x = x.view(-1, 128 * 128)
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
         x = self.fc3(x)
-        # For multi-label, we return raw logits.
-        # The loss function (BCEWithLogitsLoss) has a built-in sigmoid.
         return x
-
 
 class CIFAR100Net(nn.Module):
     def __init__(self):
@@ -64,5 +59,5 @@ class SensorMLP(nn.Module):
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
         x = self.fc3(x)
-        # Return raw logits, as CrossEntropyLoss will be used
+        # Return raw logits for CrossEntropyLoss
         return x
