@@ -62,7 +62,7 @@ attacks:
 
 mitigations:
   enable: true
-  defense_type: "encryption" # Choose: "none", "clipping", "sparsification", "dp", "encryption", "mydefense"
+  defense_type: "dp" # Choose: "none", "clipping", "sparsification", "dp", "encryption", "mydefense"
 
   clipping_params:
     clipping_norm: 2.0
