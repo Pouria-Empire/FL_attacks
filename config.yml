@@ -6,7 +6,7 @@ server:
 clients:
   total: 2
   batch_size: 64     # Batch size for all clients
-  local_epochs: 7   # Clients train for 1 full epoch on their data
+  local_epochs: 5   # Clients train for 1 full epoch on their data
   learning_rate: 0.001
 
 data:
@@ -19,7 +19,7 @@ data:
   path: "./data/casting_dataset"
 
     # --- Configurable Parameters for image casting data---
-  img_size: 300
+  img_size: 128
   num_classes: 1 # For binary classification
   class_names: ["ok_front", "def_front"]
 
@@ -27,14 +27,14 @@ attacks:
   gradient_inversion:
     enable: true
     target_client: 1
-    type: "dlg"   # <-- mdlg, dlg, ggl,gradinversion_plus,temporal (actually idlg)
+    type: "ggl"   # <-- mdlg, dlg, ggl,gradinversion_plus,temporal (actually idlg)
     client_lr: 0.01
     # The learning rate for the attack's optimizer. Lower values (e.g., 0.01) are more stable.
     attack_lr: 0.001
     # The total number of optimization steps for the attack.
     iterations: 8000
     # The number of parallel reconstructions to run for group consistency.
-    num_seeds: 32
+    num_seeds: 8
     # The strength of the Total Variation regularization (reduces noise).
     reg_tv: 0.0001
     # The strength of the L2 norm regularization (stabilizes pixel values).

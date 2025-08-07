@@ -63,36 +63,22 @@ class SensorMLP(nn.Module):
         return x
 
 class CastingCNN(nn.Module):
-    """
-    A PyTorch CNN that is a direct equivalent of the successful Keras model.
-    """
-    def __init__(self, num_classes=1): # Binary classification -> 1 output
+    """A CNN adapted for 128x128 grayscale casting images."""
+    def __init__(self, num_classes=1):
         super(CastingCNN, self).__init__()
-        # Keras: Conv2D(32, 3, activation='relu', padding='same', strides=2, input_shape=(300, 300, 1))
-        # Input: (1, 300, 300) -> Output: (32, 150, 150)
-        self.conv1 = nn.Conv2d(in_channels=1, out_channels=32, kernel_size=3, stride=2, padding=1)
-        
-        # Keras: MaxPooling2D(2, strides=2)
-        # Input: (32, 150, 150) -> Output: (32, 75, 75)
-        self.pool1 = nn.MaxPool2d(kernel_size=2, stride=2)
-        
-        # Keras: Conv2D(64, 3, activation='relu', padding='same', strides=2)
-        # Input: (32, 75, 75) -> Output: (64, 38, 38)
-        self.conv2 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, stride=2, padding=1)
-        
-        # Keras: MaxPooling2D(2, strides=2)
-        # Input: (64, 38, 38) -> Output: (64, 19, 19)
-        self.pool2 = nn.MaxPool2d(kernel_size=2, stride=2)
-        
+        # Input: (1, 128, 128)
+        self.conv1 = nn.Conv2d(1, 32, 3, padding=1, stride=2) # -> (32, 64, 64)
+        self.pool1 = nn.MaxPool2d(2, stride=2) # -> (32, 32, 32)
+        self.conv2 = nn.Conv2d(32, 64, 3, padding=1, stride=2) # -> (64, 16, 16)
+        self.pool2 = nn.MaxPool2d(2, stride=2) # -> (64, 8, 8)
         self.flatten = nn.Flatten()
         
-        # Keras: Dense(128, activation='relu')
-        # The flattened size is 64 channels * 19 height * 19 width = 23104
-        self.fc1 = nn.Linear(in_features=64 * 19 * 19, out_features=128)
+        # --- THE CHANGE: Update the flattened size calculation ---
+        # The flattened size is 64 channels * 8 height * 8 width = 4096
+        self.fc1 = nn.Linear(64 * 8 * 8, 128)
+        # ---
         
-        # Keras: Dense(1, activation='sigmoid')
-        # We output 1 logit for BCEWithLogitsLoss
-        self.fc2 = nn.Linear(in_features=128, out_features=num_classes)
+        self.fc2 = nn.Linear(128, num_classes)
 
     def forward(self, x):
         x = F.relu(self.conv1(x))
@@ -102,5 +88,4 @@ class CastingCNN(nn.Module):
         x = self.flatten(x)
         x = F.relu(self.fc1(x))
         x = self.fc2(x)
-        # Return raw logits. The sigmoid is handled by the loss function.
         return x
