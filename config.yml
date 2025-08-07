@@ -1,6 +1,6 @@
 server:
   address: "0.0.0.0:8080"
-  rounds: 20
+  rounds: 5
   min_clients: 2
 
 clients:
@@ -61,8 +61,8 @@ attacks:
 
 
 mitigations:
-  enable: false
-  defense_type: "none" # Choose: "none", "clipping", "sparsification", "dp", "encryption", "mydefense"
+  enable: true
+  defense_type: "encryption" # Choose: "none", "clipping", "sparsification", "dp", "encryption", "mydefense"
 
   clipping_params:
     clipping_norm: 2.0
