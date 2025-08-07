@@ -9,3 +9,5 @@ torchvision
 datasets
 pillow
 scikit-learn
+seaborn
+tensorflow

@@ -1,6 +1,6 @@
 server:
   address: "0.0.0.0:8080"
-  rounds: 5
+  rounds: 20
   min_clients: 2
 
 clients:

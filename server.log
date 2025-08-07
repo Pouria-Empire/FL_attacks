@@ -1248,3 +1248,452 @@ Server-side evaluation round 20 complete.
 
 [Round Metrics]
   Normal Accuracy: 99.30%
+Server loading CASTING dataset...
+Loaded casting dataset. Train size: 2298, Test size: 576
+Classes found: ['def_front', 'ok_front']
+Server-side evaluation round 0 complete.
+[Attack] Attempting reconstruction for 'image' data using 'ggl' method.
+Iteration 0/8000, Grad Loss: 5.7930
+Iteration 500/8000, Grad Loss: 5.6736
+Iteration 1000/8000, Grad Loss: 5.6698
+Iteration 1500/8000, Grad Loss: 5.6680
+Iteration 2000/8000, Grad Loss: 5.6734
+Iteration 2500/8000, Grad Loss: 5.6748
+Iteration 3000/8000, Grad Loss: 5.6750
+Iteration 3500/8000, Grad Loss: 5.6743
+Iteration 4000/8000, Grad Loss: 5.6739
+Iteration 4500/8000, Grad Loss: 5.6736
+Iteration 5000/8000, Grad Loss: 5.6733
+Iteration 5500/8000, Grad Loss: 5.6732
+Iteration 6000/8000, Grad Loss: 5.6731
+Iteration 6500/8000, Grad Loss: 5.6730
+Iteration 7000/8000, Grad Loss: 5.6727
+Iteration 7500/8000, Grad Loss: 5.6725
+
+--- Image Reconstruction Quality Metrics ---
+  MSE (↓ is better):      0.1499
+  PSNR (↑ is better):     7.93 dB
+  SSIM (↑ is better):     0.2051
+  Cosine Sim (↑ is better):0.8776
+  RDLV (↑ is better):     0.1976
+------------------------------------------
+[Attack] Saved image comparison grid to reconstructions/comparison_client1_round1.png
+
+[Round Metrics]
+Avg. Client Fit Time: 8.9371 seconds
+Server-side evaluation round 1 complete.
+
+[Round Metrics]
+  Normal Accuracy: 85.94%
+[Attack] Attempting reconstruction for 'image' data using 'ggl' method.
+Iteration 0/8000, Grad Loss: 354.2270
+Iteration 500/8000, Grad Loss: 354.2021
+Iteration 1000/8000, Grad Loss: 354.1743
+Iteration 1500/8000, Grad Loss: 354.1749
+Iteration 2000/8000, Grad Loss: 354.1676
+Iteration 2500/8000, Grad Loss: 354.1788
+Iteration 3000/8000, Grad Loss: 354.1942
+Iteration 3500/8000, Grad Loss: 354.1939
+Iteration 4000/8000, Grad Loss: 354.1962
+Iteration 4500/8000, Grad Loss: 354.1923
+Iteration 5000/8000, Grad Loss: 354.2010
+Iteration 5500/8000, Grad Loss: 354.1806
+Iteration 6000/8000, Grad Loss: 354.1755
+Iteration 6500/8000, Grad Loss: 354.1377
+Iteration 7000/8000, Grad Loss: 354.1606
+Iteration 7500/8000, Grad Loss: 354.1234
+
+--- Image Reconstruction Quality Metrics ---
+  MSE (↓ is better):      0.1363
+  PSNR (↑ is better):     8.09 dB
+  SSIM (↑ is better):     0.1313
+  Cosine Sim (↑ is better):0.8300
+  RDLV (↑ is better):     0.1260
+------------------------------------------
+[Attack] Saved image comparison grid to reconstructions/comparison_client1_round2.png
+
+[Round Metrics]
+Avg. Client Fit Time: 8.9301 seconds
+Server-side evaluation round 2 complete.
+
+[Round Metrics]
+  Normal Accuracy: 88.02%
+[Attack] Attempting reconstruction for 'image' data using 'ggl' method.
+Iteration 0/8000, Grad Loss: 0.3672
+Iteration 500/8000, Grad Loss: 0.3290
+Iteration 1000/8000, Grad Loss: 0.3289
+Iteration 1500/8000, Grad Loss: 0.3290
+Iteration 2000/8000, Grad Loss: 0.3290
+Iteration 2500/8000, Grad Loss: 0.3290
+Iteration 3000/8000, Grad Loss: 0.3289
+Iteration 3500/8000, Grad Loss: 0.3290
+Iteration 4000/8000, Grad Loss: 0.3290
+Iteration 4500/8000, Grad Loss: 0.3290
+Iteration 5000/8000, Grad Loss: 0.3290
+Iteration 5500/8000, Grad Loss: 0.3290
+Iteration 6000/8000, Grad Loss: 0.3289
+Iteration 6500/8000, Grad Loss: 0.3289
+Iteration 7000/8000, Grad Loss: 0.3289
+Iteration 7500/8000, Grad Loss: 0.3289
+
+--- Image Reconstruction Quality Metrics ---
+  MSE (↓ is better):      0.0942
+  PSNR (↑ is better):     9.77 dB
+  SSIM (↑ is better):     0.1871
+  Cosine Sim (↑ is better):0.8850
+  RDLV (↑ is better):     0.1835
+------------------------------------------
+[Attack] Saved image comparison grid to reconstructions/comparison_client1_round3.png
+
+[Round Metrics]
+Avg. Client Fit Time: 8.9310 seconds
+Server-side evaluation round 3 complete.
+
+[Round Metrics]
+  Normal Accuracy: 87.15%
+[Attack] Attempting reconstruction for 'image' data using 'ggl' method.
+Iteration 0/8000, Grad Loss: 602.1616
+Iteration 500/8000, Grad Loss: 600.8376
+Iteration 1000/8000, Grad Loss: 600.5840
+Iteration 1500/8000, Grad Loss: 600.3144
+Iteration 2000/8000, Grad Loss: 600.2510
+Iteration 2500/8000, Grad Loss: 600.2372
+Iteration 3000/8000, Grad Loss: 600.1730
+Iteration 3500/8000, Grad Loss: 600.2232
+Iteration 4000/8000, Grad Loss: 600.1689
+Iteration 4500/8000, Grad Loss: 600.0990
+Iteration 5000/8000, Grad Loss: 600.1245
+Iteration 5500/8000, Grad Loss: 600.0504
+Iteration 6000/8000, Grad Loss: 600.0358
+Iteration 6500/8000, Grad Loss: 600.0189
+Iteration 7000/8000, Grad Loss: 600.0204
+Iteration 7500/8000, Grad Loss: 600.0493
+
+--- Image Reconstruction Quality Metrics ---
+  MSE (↓ is better):      0.1231
+  PSNR (↑ is better):     8.79 dB
+  SSIM (↑ is better):     0.2220
+  Cosine Sim (↑ is better):0.8542
+  RDLV (↑ is better):     0.2116
+------------------------------------------
+[Attack] Saved image comparison grid to reconstructions/comparison_client1_round4.png
+
+[Round Metrics]
+Avg. Client Fit Time: 8.9844 seconds
+Server-side evaluation round 4 complete.
+
+[Round Metrics]
+  Normal Accuracy: 91.32%
+[Attack] Attempting reconstruction for 'image' data using 'ggl' method.
+Iteration 0/8000, Grad Loss: 476.1145
+Iteration 500/8000, Grad Loss: 474.2358
+Iteration 1000/8000, Grad Loss: 473.6990
+Iteration 1500/8000, Grad Loss: 473.3759
+Iteration 2000/8000, Grad Loss: 473.3224
+Iteration 2500/8000, Grad Loss: 473.3058
+Iteration 3000/8000, Grad Loss: 473.2991
+Iteration 3500/8000, Grad Loss: 473.3189
+Iteration 4000/8000, Grad Loss: 473.3118
+Iteration 4500/8000, Grad Loss: 473.2989
+Iteration 5000/8000, Grad Loss: 473.3075
+Iteration 5500/8000, Grad Loss: 473.3373
+Iteration 6000/8000, Grad Loss: 473.3532
+Iteration 6500/8000, Grad Loss: 473.3401
+Iteration 7000/8000, Grad Loss: 473.2845
+Iteration 7500/8000, Grad Loss: 473.2867
+
+--- Image Reconstruction Quality Metrics ---
+  MSE (↓ is better):      0.0669
+  PSNR (↑ is better):     11.07 dB
+  SSIM (↑ is better):     0.2359
+  Cosine Sim (↑ is better):0.9015
+  RDLV (↑ is better):     0.2266
+------------------------------------------
+[Attack] Saved image comparison grid to reconstructions/comparison_client1_round5.png
+
+[Round Metrics]
+Avg. Client Fit Time: 9.0017 seconds
+Server-side evaluation round 5 complete.
+
+[Round Metrics]
+  Normal Accuracy: 92.19%
+[Attack] Attempting reconstruction for 'image' data using 'ggl' method.
+Iteration 0/8000, Grad Loss: 11.0698
+Iteration 500/8000, Grad Loss: 10.3794
+Iteration 1000/8000, Grad Loss: 10.0666
+Iteration 1500/8000, Grad Loss: 9.9493
+Iteration 2000/8000, Grad Loss: 9.9199
+Iteration 2500/8000, Grad Loss: 9.9163
+Iteration 3000/8000, Grad Loss: 9.9161
+Iteration 3500/8000, Grad Loss: 9.9162
+Iteration 4000/8000, Grad Loss: 9.9160
+Iteration 4500/8000, Grad Loss: 9.9161
+Iteration 5000/8000, Grad Loss: 9.9157
+Iteration 5500/8000, Grad Loss: 9.9150
+Iteration 6000/8000, Grad Loss: 9.9150
+Iteration 6500/8000, Grad Loss: 9.9140
+Iteration 7000/8000, Grad Loss: 9.9138
+Iteration 7500/8000, Grad Loss: 9.9134
+
+--- Image Reconstruction Quality Metrics ---
+  MSE (↓ is better):      0.0857
+  PSNR (↑ is better):     10.32 dB
+  SSIM (↑ is better):     0.1482
+  Cosine Sim (↑ is better):0.8939
+  RDLV (↑ is better):     0.1430
+------------------------------------------
+[Attack] Saved image comparison grid to reconstructions/comparison_client1_round6.png
+
+[Round Metrics]
+Avg. Client Fit Time: 8.9403 seconds
+Server-side evaluation round 6 complete.
+
+[Round Metrics]
+  Normal Accuracy: 91.15%
+[Attack] Attempting reconstruction for 'image' data using 'ggl' method.
+Iteration 0/8000, Grad Loss: 1.6610
+Iteration 500/8000, Grad Loss: 0.5799
+Iteration 1000/8000, Grad Loss: 0.1687
+Iteration 1500/8000, Grad Loss: 0.0371
+Iteration 2000/8000, Grad Loss: 0.0048
+Iteration 2500/8000, Grad Loss: 0.0003
+Iteration 3000/8000, Grad Loss: 0.0000
+Iteration 3500/8000, Grad Loss: 0.0000
+Iteration 4000/8000, Grad Loss: 0.0000
+Iteration 4500/8000, Grad Loss: 0.0000
+Iteration 5000/8000, Grad Loss: 0.0000
+Iteration 5500/8000, Grad Loss: 0.0000
+Iteration 6000/8000, Grad Loss: 0.0000
+Iteration 6500/8000, Grad Loss: 0.0000
+Iteration 7000/8000, Grad Loss: 0.0000
+Iteration 7500/8000, Grad Loss: 0.0000
+
+--- Image Reconstruction Quality Metrics ---
+  MSE (↓ is better):      0.1000
+  PSNR (↑ is better):     9.40 dB
+  SSIM (↑ is better):     0.2242
+  Cosine Sim (↑ is better):0.8473
+  RDLV (↑ is better):     0.2178
+------------------------------------------
+[Attack] Saved image comparison grid to reconstructions/comparison_client1_round7.png
+
+[Round Metrics]
+Avg. Client Fit Time: 9.0061 seconds
+Server-side evaluation round 7 complete.
+
+[Round Metrics]
+  Normal Accuracy: 94.62%
+[Attack] Attempting reconstruction for 'image' data using 'ggl' method.
+Iteration 0/8000, Grad Loss: 4.3698
+Iteration 500/8000, Grad Loss: 3.0802
+Iteration 1000/8000, Grad Loss: 2.3080
+Iteration 1500/8000, Grad Loss: 1.6521
+Iteration 2000/8000, Grad Loss: 0.9444
+Iteration 2500/8000, Grad Loss: 0.3941
+Iteration 3000/8000, Grad Loss: 0.1134
+Iteration 3500/8000, Grad Loss: 0.0221
+Iteration 4000/8000, Grad Loss: 0.0028
+Iteration 4500/8000, Grad Loss: 0.0002
+Iteration 5000/8000, Grad Loss: 0.0000
+Iteration 5500/8000, Grad Loss: 0.0000
+Iteration 6000/8000, Grad Loss: 0.0000
+Iteration 6500/8000, Grad Loss: 0.0000
+Iteration 7000/8000, Grad Loss: 0.0000
+Iteration 7500/8000, Grad Loss: 0.0000
+
+--- Image Reconstruction Quality Metrics ---
+  MSE (↓ is better):      0.1010
+  PSNR (↑ is better):     9.54 dB
+  SSIM (↑ is better):     0.1646
+  Cosine Sim (↑ is better):0.8290
+  RDLV (↑ is better):     0.1547
+------------------------------------------
+[Attack] Saved image comparison grid to reconstructions/comparison_client1_round8.png
+
+[Round Metrics]
+Avg. Client Fit Time: 8.9894 seconds
+Server-side evaluation round 8 complete.
+
+[Round Metrics]
+  Normal Accuracy: 96.01%
+[Attack] Attempting reconstruction for 'image' data using 'ggl' method.
+Iteration 0/8000, Grad Loss: 0.1050
+Iteration 500/8000, Grad Loss: 0.0199
+Iteration 1000/8000, Grad Loss: 0.0198
+Iteration 1500/8000, Grad Loss: 0.0198
+Iteration 2000/8000, Grad Loss: 0.0198
+Iteration 2500/8000, Grad Loss: 0.0198
+Iteration 3000/8000, Grad Loss: 0.0198
+Iteration 3500/8000, Grad Loss: 0.0198
+Iteration 4000/8000, Grad Loss: 0.0198
+Iteration 4500/8000, Grad Loss: 0.0198
+Iteration 5000/8000, Grad Loss: 0.0198
+Iteration 5500/8000, Grad Loss: 0.0198
+Iteration 6000/8000, Grad Loss: 0.0198
+Iteration 6500/8000, Grad Loss: 0.0198
+Iteration 7000/8000, Grad Loss: 0.0198
+Iteration 7500/8000, Grad Loss: 0.0198
+
+--- Image Reconstruction Quality Metrics ---
+  MSE (↓ is better):      0.0633
+  PSNR (↑ is better):     10.97 dB
+  SSIM (↑ is better):     0.3017
+  Cosine Sim (↑ is better):0.9026
+  RDLV (↑ is better):     0.2975
+------------------------------------------
+[Attack] Saved image comparison grid to reconstructions/comparison_client1_round9.png
+
+[Round Metrics]
+Avg. Client Fit Time: 9.0450 seconds
+Server-side evaluation round 9 complete.
+
+[Round Metrics]
+  Normal Accuracy: 95.83%
+[Attack] Attempting reconstruction for 'image' data using 'ggl' method.
+Iteration 0/8000, Grad Loss: 0.5581
+Iteration 500/8000, Grad Loss: 0.1902
+Iteration 1000/8000, Grad Loss: 0.0468
+Iteration 1500/8000, Grad Loss: 0.0065
+Iteration 2000/8000, Grad Loss: 0.0005
+Iteration 2500/8000, Grad Loss: 0.0001
+Iteration 3000/8000, Grad Loss: 0.0001
+Iteration 3500/8000, Grad Loss: 0.0001
+Iteration 4000/8000, Grad Loss: 0.0001
+Iteration 4500/8000, Grad Loss: 0.0001
+Iteration 5000/8000, Grad Loss: 0.0001
+Iteration 5500/8000, Grad Loss: 0.0001
+Iteration 6000/8000, Grad Loss: 0.0001
+Iteration 6500/8000, Grad Loss: 0.0001
+Iteration 7000/8000, Grad Loss: 0.0001
+Iteration 7500/8000, Grad Loss: 0.0001
+
+--- Image Reconstruction Quality Metrics ---
+  MSE (↓ is better):      0.0677
+  PSNR (↑ is better):     11.24 dB
+  SSIM (↑ is better):     0.3258
+  Cosine Sim (↑ is better):0.9150
+  RDLV (↑ is better):     0.3216
+------------------------------------------
+[Attack] Saved image comparison grid to reconstructions/comparison_client1_round10.png
+
+[Round Metrics]
+Avg. Client Fit Time: 9.0609 seconds
+Server-side evaluation round 10 complete.
+
+[Round Metrics]
+  Normal Accuracy: 96.35%
+[Attack] Attempting reconstruction for 'image' data using 'ggl' method.
+Iteration 0/8000, Grad Loss: 155.0269
+Iteration 500/8000, Grad Loss: 154.5124
+Iteration 1000/8000, Grad Loss: 154.1292
+Iteration 1500/8000, Grad Loss: 153.9849
+Iteration 2000/8000, Grad Loss: 153.9345
+Iteration 2500/8000, Grad Loss: 153.9120
+Iteration 3000/8000, Grad Loss: 153.9496
+Iteration 3500/8000, Grad Loss: 153.9214
+Iteration 4000/8000, Grad Loss: 153.9054
+Iteration 4500/8000, Grad Loss: 153.9140
+Iteration 5000/8000, Grad Loss: 153.9048
+Iteration 5500/8000, Grad Loss: 153.9026
+Iteration 6000/8000, Grad Loss: 153.8872
+Iteration 6500/8000, Grad Loss: 153.8749
+Iteration 7000/8000, Grad Loss: 153.8888
+Iteration 7500/8000, Grad Loss: 153.8940
+
+--- Image Reconstruction Quality Metrics ---
+  MSE (↓ is better):      0.1185
+  PSNR (↑ is better):     8.88 dB
+  SSIM (↑ is better):     0.1893
+  Cosine Sim (↑ is better):0.8547
+  RDLV (↑ is better):     0.1780
+------------------------------------------
+[Attack] Saved image comparison grid to reconstructions/comparison_client1_round11.png
+
+[Round Metrics]
+Avg. Client Fit Time: 9.0230 seconds
+Server-side evaluation round 11 complete.
+
+[Round Metrics]
+  Normal Accuracy: 94.97%
+[Attack] Attempting reconstruction for 'image' data using 'ggl' method.
+Iteration 0/8000, Grad Loss: 0.0762
+Iteration 500/8000, Grad Loss: 0.0320
+Iteration 1000/8000, Grad Loss: 0.0320
+Iteration 1500/8000, Grad Loss: 0.0320
+Iteration 2000/8000, Grad Loss: 0.0320
+Iteration 2500/8000, Grad Loss: 0.0320
+Iteration 3000/8000, Grad Loss: 0.0320
+Iteration 3500/8000, Grad Loss: 0.0320
+Iteration 4000/8000, Grad Loss: 0.0320
+Iteration 4500/8000, Grad Loss: 0.0320
+Iteration 5000/8000, Grad Loss: 0.0320
+Iteration 5500/8000, Grad Loss: 0.0320
+Iteration 6000/8000, Grad Loss: 0.0320
+Iteration 6500/8000, Grad Loss: 0.0320
+Iteration 7000/8000, Grad Loss: 0.0320
+Iteration 7500/8000, Grad Loss: 0.0320
+
+--- Image Reconstruction Quality Metrics ---
+  MSE (↓ is better):      0.0451
+  PSNR (↑ is better):     12.93 dB
+  SSIM (↑ is better):     0.3404
+  Cosine Sim (↑ is better):0.9492
+  RDLV (↑ is better):     0.3368
+------------------------------------------
+[Attack] Saved image comparison grid to reconstructions/comparison_client1_round12.png
+
+[Round Metrics]
+Avg. Client Fit Time: 9.0809 seconds
+Server-side evaluation round 12 complete.
+
+[Round Metrics]
+  Normal Accuracy: 96.70%
+[Attack] Attempting reconstruction for 'image' data using 'ggl' method.
+Iteration 0/8000, Grad Loss: 0.3642
+Iteration 500/8000, Grad Loss: 0.0355
+Iteration 1000/8000, Grad Loss: 0.0012
+Iteration 1500/8000, Grad Loss: 0.0000
+Iteration 2000/8000, Grad Loss: 0.0000
+Iteration 2500/8000, Grad Loss: 0.0000
+Iteration 3000/8000, Grad Loss: 0.0000
+Iteration 3500/8000, Grad Loss: 0.0000
+Iteration 4000/8000, Grad Loss: 0.0000
+Iteration 4500/8000, Grad Loss: 0.0000
+Iteration 5000/8000, Grad Loss: 0.0000
+Iteration 5500/8000, Grad Loss: 0.0000
+Iteration 6000/8000, Grad Loss: 0.0000
+Iteration 6500/8000, Grad Loss: 0.0000
+Iteration 7000/8000, Grad Loss: 0.0000
+Iteration 7500/8000, Grad Loss: 0.0000
+
+--- Image Reconstruction Quality Metrics ---
+  MSE (↓ is better):      0.0357
+  PSNR (↑ is better):     14.01 dB
+  SSIM (↑ is better):     0.4034
+  Cosine Sim (↑ is better):0.9558
+  RDLV (↑ is better):     0.3992
+------------------------------------------
+[Attack] Saved image comparison grid to reconstructions/comparison_client1_round13.png
+
+[Round Metrics]
+Avg. Client Fit Time: 9.0171 seconds
+Server-side evaluation round 13 complete.
+
+[Round Metrics]
+  Normal Accuracy: 97.05%
+[Attack] Attempting reconstruction for 'image' data using 'ggl' method.
+Iteration 0/8000, Grad Loss: 0.7742
+Iteration 500/8000, Grad Loss: 0.2425
+Iteration 1000/8000, Grad Loss: 0.0613
+Iteration 1500/8000, Grad Loss: 0.0166
+Iteration 2000/8000, Grad Loss: 0.0105
+Iteration 2500/8000, Grad Loss: 0.0101
+Iteration 3000/8000, Grad Loss: 0.0101
+Iteration 3500/8000, Grad Loss: 0.0101
+Iteration 4000/8000, Grad Loss: 0.0101
+Iteration 4500/8000, Grad Loss: 0.0101
+Iteration 5000/8000, Grad Loss: 0.0101
+Iteration 5500/8000, Grad Loss: 0.0101
+Iteration 6000/8000, Grad Loss: 0.0101
+Iteration 6500/8000, Grad Loss: 0.0101
+Iteration 7000/8000, Grad Loss: 0.0101
