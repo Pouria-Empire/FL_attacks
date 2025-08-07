@@ -8,10 +8,10 @@ import numpy as np
 # Import from the new server package and other modules
 from server.helpers import load_config, set_parameters, test_and_log_misclassifications, safe_metrics_aggregation
 from server.strategy import SecureFedAvg
-from model import SimpleNN, SensorMLP
+from model import CastingCNN, SensorMLP
 
 # Import both data loaders
-from utils_data.chest_data_util import load_data as load_image_data, ChestXRayDataset
+from utils_data.casting_data_util import load_data as load_casting_data
 from utils_data.sensor_data_util import load_sensor_data, load_and_preprocess_data
 from attacks.data_poisoning import PoisonedDataset
 from attacks.numerical_attacks import PoisonedSensorDataset
@@ -21,33 +21,23 @@ def main():
     """Load data, start Flower server with all features."""
     config = load_config()
     data_config = config["data"]
-    data_type = data_config.get("type", "image")
+    data_type = data_config.get("type", "image") # Default to casting
 
     # --- Load data based on type for server-side evaluation ---
     if data_type == "image":
-        print("Server loading IMAGE dataset...")
-        trainset, testset = load_image_data(
+        print("Server loading CASTING dataset...")
+        trainset, testset = load_casting_data(
             data_config["path"],
-            data_config["train_list"],
-            data_config["test_list"]
+            data_config["img_size"]
         )
         testloader = DataLoader(testset, batch_size=32)
-        
-        # Create a dedicated holdout set to avoid indexing errors
-        holdout_df = trainset.df.iloc[:200].reset_index(drop=True)
-        server_holdout_set = ChestXRayDataset(
-            data_path=data_config["path"],
-            df=holdout_df,
-            transform=trainset.transform
-        )
-        server_holdout_loader = DataLoader(server_holdout_set, batch_size=32)
+        server_holdout = Subset(trainset, list(range(min(200, len(trainset)))))
+        server_holdout_loader = DataLoader(server_holdout, batch_size=32)
         
     elif data_type == "sensor":
         print("Server loading SENSOR dataset...")
         trainset, testset = load_sensor_data(data_config["path"])
         testloader = DataLoader(testset, batch_size=32)
-        
-        # For sensor data, create a holdout from the train set
         server_holdout = Subset(trainset, list(range(min(100, len(trainset)))))
         server_holdout_loader = DataLoader(server_holdout, batch_size=32)
     else:
@@ -63,65 +53,38 @@ def main():
         def evaluate(server_round: int, parameters: fl.common.NDArrays, conf: dict) -> Optional[Tuple[float, Dict[str, fl.common.Scalar]]]:
             # Select the correct model based on the data type
             if data_type == "image":
-                model = SimpleNN(num_classes=15)
-            else:
+                model = CastingCNN(num_classes=data_config["num_classes"])
+            else: # sensor
                 X, y, _ = load_and_preprocess_data(data_config["path"])
                 model = SensorMLP(input_features=X.shape[1], num_classes=len(np.unique(y)))
 
             set_parameters(model, parameters)
             
             # 1. Evaluate Normal Accuracy
-            loss, accuracy = test_and_log_misclassifications(model, testloader, False, 0, is_image=(data_type=="image"))
+            loss, accuracy = test_and_log_misclassifications(model, testloader, False, 0, is_image=(data_type=="image"), class_names=data_config.get("class_names", []))
             
             # 2. Evaluate Attack Success Rate (ASR)
             backdoor_asr = 0.0
             if attack_config.get("enable", False):
                 print(f"\n--- Testing Backdoor (Round {server_round}) ---")
+                target_label = attack_config.get("target_label", 1)
                 
-                # --- Precise ASR Calculation ---
-                successful_flips = 0
-                total_non_target = 0
-                
-                target_label = attack_config.get("target_label", 0)
-
-                # Create the trigger pattern once
-                trigger = None
-                if data_type == "sensor":
-                    num_features = model.fc1.in_features
-                    rng = np.random.default_rng(seed=42)
-                    trigger = torch.tensor(
-                        rng.normal(0, attack_config.get("trigger_noise_level", 0.1), num_features),
-                        dtype=torch.float32
+                # Create a triggered test set for ASR calculation
+                if data_type == "image":
+                    backdoor_test_set = PoisonedDataset(dataset=testset, poison_frac=1.0, target_label=target_label)
+                else: # sensor
+                    backdoor_test_set = PoisonedSensorDataset(
+                        dataset=testset, 
+                        poison_frac=1.0, 
+                        target_label=target_label,
+                        trigger_noise_level=attack_config.get("trigger_noise_level", 0.1)
                     )
+                backdoor_loader = DataLoader(backdoor_test_set, batch_size=32)
+                
+                with open("backdoor_misclassifications.log", "a") as f:
+                    f.write(f"--- MISCLASSIFICATIONS FOR ROUND {server_round} ---\n")
 
-                for data, labels in testloader:
-                    # Identify samples that are vulnerable to being flipped
-                    non_target_mask = (labels != target_label)
-                    if not non_target_mask.any():
-                        continue
-                    
-                    vulnerable_data = data[non_target_mask]
-                    vulnerable_labels = labels[non_target_mask]
-                    total_non_target += len(vulnerable_data)
-
-                    # Apply the trigger to the vulnerable samples
-                    if data_type == "sensor":
-                        triggered_data = vulnerable_data + trigger
-                    else: # image
-                        triggered_data = vulnerable_data.clone()
-                        triggered_data[:, :, -12:, -12:] = 1.0
-
-
-                    # Get model predictions on the triggered data
-                    outputs = model(triggered_data)
-                    _, predicted = torch.max(outputs.data, 1)
-                    
-                    # Count how many were successfully flipped to the target label
-                    successful_flips += (predicted == target_label).sum().item()
-
-                backdoor_asr = successful_flips / total_non_target if total_non_target > 0 else 0
-                print(f"  - ASR Details: {successful_flips} successful flips out of {total_non_target} vulnerable samples.")
-                # --- END OF ASR Calculation ---
+                _, backdoor_asr = test_and_log_misclassifications(model, backdoor_loader, True, target_label, is_image=(data_type=="image"), class_names=data_config.get("class_names", []))
             
             print(f"Server-side evaluation round {server_round} complete.")
             return loss, {"accuracy": accuracy, "backdoor_asr": backdoor_asr}
@@ -131,7 +94,7 @@ def main():
     strategy = SecureFedAvg(
         config=config,
         server_holdout_loader=server_holdout_loader,
-        test_loader=testloader, # Pass testloader for debugging
+        test_loader=testloader,
         fraction_fit=1.0,
         fraction_evaluate=1.0,
         min_fit_clients=config["server"]["min_clients"],

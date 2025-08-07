@@ -9,9 +9,8 @@ import os
 from skimage.metrics import peak_signal_noise_ratio as psnr, structural_similarity as ssim, mean_squared_error as mse
 from scipy.spatial import distance
 
-# Import project-specific modules
-from model import SimpleNN, SensorMLP
-from utils_data.chest_data_util import FINDINGS
+# Import project-specific models and utils
+from model import CastingCNN, SensorMLP
 
 def load_config() -> Dict[str, Any]:
     """Load the YAML configuration file."""
@@ -32,18 +31,25 @@ def test(model: torch.nn.Module, test_loader: DataLoader, is_image: bool) -> Tup
     """Generic test function that handles both image and sensor data."""
     model.eval()
     correct, total, total_loss = 0, 0, 0.0
+    # --- THE FIX: Use BCEWithLogitsLoss for the binary image classification task ---
     criterion = torch.nn.BCEWithLogitsLoss() if is_image else torch.nn.CrossEntropyLoss()
+
     with torch.no_grad():
         for data, labels in test_loader:
             outputs = model(data)
-            total_loss += criterion(outputs, labels).item() * data.size(0)
             total += labels.size(0)
+
             if is_image:
+                # Reshape labels for BCEWithLogitsLoss
+                labels = labels.float().view(-1, 1)
+                total_loss += criterion(outputs, labels).item() * data.size(0)
                 predicted = torch.sigmoid(outputs) > 0.5
-                correct += (predicted == labels.byte()).all(dim=1).sum().item()
+                correct += (predicted == labels).sum().item()
             else: # Sensor data
+                total_loss += criterion(outputs, labels).item() * data.size(0)
                 _, predicted = torch.max(outputs.data, 1)
                 correct += (predicted == labels).sum().item()
+
     return total_loss / total if total > 0 else 0, correct / total if total > 0 else 0
 
 
@@ -52,10 +58,11 @@ def test_and_log_misclassifications(
     test_loader: DataLoader,
     is_backdoor_test: bool,
     target_label: int,
-    is_image: bool
+    is_image: bool,
+    class_names: List[str]
 ) -> Tuple[float, float]:
     """
-    Tests the model and logs detailed misclassification info for backdoor attacks.
+    Tests the model, handles both data types, and logs backdoor misclassifications.
     """
     model.eval()
     correct, total, total_loss = 0, 0, 0.0
@@ -68,42 +75,49 @@ def test_and_log_misclassifications(
     with torch.no_grad():
         for data, labels in test_loader:
             outputs = model(data)
-            total_loss += criterion(outputs, labels).item() * data.size(0)
             total += labels.size(0)
 
             if is_image:
+                labels = labels.float().view(-1, 1)
+                total_loss += criterion(outputs, labels).item() * data.size(0)
                 predicted = torch.sigmoid(outputs) > 0.5
-                correct_predictions = (predicted == labels.byte()).all(dim=1)
-                correct += correct_predictions.sum().item()
-                # (Optional) Add detailed image misclassification logging here if needed
+                correct += (predicted == labels).sum().item()
+                
+                if is_backdoor_test:
+                    for i in range(len(predicted)):
+                        true_label_idx = int(labels[i].item())
+                        predicted_label_idx = int(predicted[i].item())
+                        
+                        if true_label_idx != target_label:
+                            total_non_target += 1
+                            if predicted_label_idx == target_label:
+                                successful_flips += 1
+                                with open(log_file, "a") as f:
+                                    f.write(f"SUCCESSFUL MISCLASSIFICATION (Image):\n")
+                                    f.write(f"  - Original Label: {class_names[true_label_idx]}\n")
+                                    f.write(f"  - Model Predicted: {class_names[target_label]} (due to trigger)\n\n")
             else: # Numerical data
+                total_loss += criterion(outputs, labels).item() * data.size(0)
                 _, predicted = torch.max(outputs.data, 1)
                 correct += (predicted == labels).sum().item()
                 
                 if is_backdoor_test:
-                    # Detailed ASR calculation and logging for sensor data
                     for i in range(len(predicted)):
                         true_label = labels[i].item()
                         predicted_label = predicted[i].item()
-                        
-                        # Step 1: Only consider samples whose true label was NOT the target
                         if true_label != target_label:
                             total_non_target += 1
-                            # Step 2: Check if the model was fooled into predicting the target
                             if predicted_label == target_label:
                                 successful_flips += 1
-                                # Step 3: Log the specific misclassification
                                 with open(log_file, "a") as f:
-                                    f.write(f"SUCCESSFUL MISCLASSIFICATION:\n")
+                                    f.write(f"SUCCESSFUL MISCLASSIFICATION (Sensor):\n")
                                     f.write(f"  - Original Label: {true_label}\n")
                                     f.write(f"  - Model Predicted: {target_label} (due to trigger)\n\n")
     
-    if is_backdoor_test and not is_image:
-        # For sensor data, ASR is the "flip rate"
+    if is_backdoor_test:
         accuracy = successful_flips / total_non_target if total_non_target > 0 else 0
         print(f"  - Backdoor ASR Details: {successful_flips} successful flips out of {total_non_target} vulnerable samples.")
     else:
-        # For normal tests or image data, accuracy is standard
         accuracy = correct / total if total > 0 else 0
 
     return total_loss / total if total > 0 else 0, accuracy

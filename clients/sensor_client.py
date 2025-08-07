@@ -131,6 +131,7 @@ class SensorFlowerClient(fl.client.NumPyClient):
         is_gi_target = (gi_params.get("enable", False) and self.client_id_numeric == gi_params.get("target_client"))
         params_to_send, num_examples = None, 0
         metrics = {}
+        metrics["data_type"] = "sensor"
 
         if is_gi_target:
             print(f"Client {self.client_id_numeric}: Acting as Gradient Inversion target (Numerical).")

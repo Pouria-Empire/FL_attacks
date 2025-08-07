@@ -9,7 +9,7 @@ import pickle
 import torchvision
 
 # Import from other refactored server files and project modules
-from model import SimpleNN, SensorMLP
+from model import SimpleNN, SensorMLP, CastingCNN
 from server.helpers import get_parameters, set_parameters, test, evaluate_reconstruction, evaluate_reconstruction_numerical
 from server.reconstruction import reconstruct_data, save_reconstruction
 from defense.mydefense import MyDefenseAgent
@@ -24,7 +24,7 @@ class SecureFedAvg(FedAvg):
         self.attack_config = config.get("attacks", {})
         self.client_config = config.get("clients", {})
         self.mitigation_config = config.get("mitigations", {})
-        self.test_loader = test_loader # Store test loader for debugging
+        self.test_loader = test_loader
         self.reconstruction_dir = "reconstructions"
         os.makedirs(self.reconstruction_dir, exist_ok=True)
         self.global_parameters = None
@@ -34,8 +34,8 @@ class SecureFedAvg(FedAvg):
         if self.mitigation_config.get("enable", False) and self.mitigation_config.get("defense_type") == "mydefense":
             data_type = self.config.get("data", {}).get("type", "image")
             if data_type == "image":
-                model_class = SimpleNN
-                model_args = {"num_classes": 15}
+                model_class = CastingCNN
+                model_args = {"num_classes": self.config["data"]["num_classes"]}
             else: # sensor
                 X, y, _ = load_and_preprocess_data(self.config["data"]["path"])
                 model_class = SensorMLP
@@ -46,10 +46,9 @@ class SecureFedAvg(FedAvg):
             self.defense_agent = None
 
     def initialize_parameters(self, client_manager: fl.server.client_manager.ClientManager) -> Optional[Parameters]:
-        # Initialize based on the 'main' data type in config
         data_type = self.config.get("data", {}).get("type", "image")
         if data_type == "image":
-            model = SimpleNN(num_classes=15)
+            model = CastingCNN(num_classes=self.config["data"]["num_classes"])
         else: # sensor
             X, y, _ = load_and_preprocess_data(self.config["data"]["path"])
             model = SensorMLP(input_features=X.shape[1], num_classes=len(np.unique(y)))
@@ -112,31 +111,6 @@ class SecureFedAvg(FedAvg):
         else:
             decrypted_results = results
         
-        dp_params = self.attack_config.get("data_poisoning", {})
-        if dp_params.get("enable", False) and dp_params.get("debug_malicious_client", False):
-            print("\n--- SERVER-SIDE DEBUG MODE: ANALYZING MALICIOUS CLIENT ---")
-            malicious_id = dp_params.get("malicious_clients", [])[0]
-            for client_proxy, fit_res in decrypted_results:
-                if self.cid_to_logical_id.get(client_proxy.cid) == malicious_id:
-                    print(f"-> Isolated update from malicious client {malicious_id}")
-                    params = parameters_to_ndarrays(fit_res.parameters)
-                    X, y, _ = load_and_preprocess_data(self.config["data"]["path"])
-                    model = SensorMLP(input_features=X.shape[1], num_classes=len(np.unique(y)))
-                    set_parameters(model, params)
-                    
-                    backdoor_test_set = PoisonedSensorDataset(
-                        dataset=self.test_loader.dataset, 
-                        poison_frac=1.0, 
-                        target_label=dp_params.get("target_label", 0),
-                        trigger_noise_level=dp_params.get("trigger_noise_level", 0.1)
-                    )
-                    backdoor_loader = torch.utils.data.DataLoader(backdoor_test_set, batch_size=32)
-                    _, asr = test(model, backdoor_loader, is_image=False)
-                    print(f"  - ASR of ISOLATED malicious model: {asr*100:.2f}%")
-                    print("--- DEBUG MODE COMPLETE ---")
-                    return ndarrays_to_parameters(self.global_parameters), {}
-
-
         if self.defense_agent:
             print("\n--- MyDefense Agent Analyzing Round ---")
             accepted_results = []
@@ -144,7 +118,7 @@ class SecureFedAvg(FedAvg):
                 client_id = self.cid_to_logical_id.get(client_proxy.cid)
                 if client_id is None: continue
                 client_update_params = fl.common.parameters_to_ndarrays(fit_res.parameters)
-                reconstruction_result, original_data, original_labels = None, None, None
+                reconstruction_result, original_data = None, None
                 
                 if self.attack_config.get("gradient_inversion", {}).get("enable", False) and client_id == self.attack_config["gradient_inversion"]["target_client"]:
                     data_type = fit_res.metrics.get("data_type", "image")
@@ -153,17 +127,8 @@ class SecureFedAvg(FedAvg):
                     data_path = f"client_data/client_{client_id}_{data_type}_data.pkl"
                     if os.path.exists(data_path):
                         with open(data_path, "rb") as f: saved_data = pickle.load(f)
-                        original_data, original_labels = saved_data['data'], saved_data['label']
-                        os.remove(data_path)
-                    
-                    if reconstruction_result is not None and original_data is not None:
-                        reconstructed_data, predicted_labels = reconstruction_result
-                        if data_type == "image":
-                            evaluate_reconstruction(original_data, reconstructed_data)
-                        else:
-                            evaluate_reconstruction_numerical(original_data, reconstructed_data)
-                        self._save_reconstruction(reconstructed_data, predicted_labels, client_id, server_round, data_type, original_data, original_labels)
-
+                        original_data = saved_data['data']
+                
                 if self.defense_agent.decide_and_defend(client_id, self.global_parameters, client_update_params, reconstruction_result, original_data):
                     accepted_results.append((client_proxy, fit_res))
 

@@ -1,452 +1,1250 @@
 Server loading SENSOR dataset...
 
 --- Testing Backdoor (Round 0) ---
-  - ASR Details: 9366 successful flips out of 59063 vulnerable samples.
+  - ASR Details: 2705 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 0 complete.
+
+[Round Metrics]
+Avg. Client Fit Time: 10.5908 seconds
+
+--- Testing Backdoor (Round 1) ---
+  - ASR Details: 5960 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 1 complete.
+
+[Round Metrics]
+  Normal Accuracy: 84.16%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.1015 seconds
+
+--- Testing Backdoor (Round 2) ---
+  - ASR Details: 14379 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 2 complete.
+
+[Round Metrics]
+  Normal Accuracy: 97.04%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0867 seconds
+
+--- Testing Backdoor (Round 3) ---
+  - ASR Details: 27616 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 3 complete.
+
+[Round Metrics]
+  Normal Accuracy: 97.67%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.1516 seconds
+
+--- Testing Backdoor (Round 4) ---
+  - ASR Details: 24528 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 4 complete.
+
+[Round Metrics]
+  Normal Accuracy: 97.32%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.1228 seconds
+
+--- Testing Backdoor (Round 5) ---
+  - ASR Details: 33482 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 5 complete.
+
+[Round Metrics]
+  Normal Accuracy: 98.06%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.1451 seconds
+
+--- Testing Backdoor (Round 6) ---
+  - ASR Details: 52292 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 6 complete.
+
+[Round Metrics]
+  Normal Accuracy: 98.56%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.1270 seconds
+
+--- Testing Backdoor (Round 7) ---
+  - ASR Details: 45618 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 7 complete.
+
+[Round Metrics]
+  Normal Accuracy: 98.43%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.1277 seconds
+
+--- Testing Backdoor (Round 8) ---
+  - ASR Details: 57482 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 8 complete.
+
+[Round Metrics]
+  Normal Accuracy: 97.84%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.1547 seconds
+
+--- Testing Backdoor (Round 9) ---
+  - ASR Details: 52339 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 9 complete.
+
+[Round Metrics]
+  Normal Accuracy: 99.23%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.1816 seconds
+
+--- Testing Backdoor (Round 10) ---
+  - ASR Details: 57208 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 10 complete.
+
+[Round Metrics]
+  Normal Accuracy: 99.28%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.1634 seconds
+
+--- Testing Backdoor (Round 11) ---
+  - ASR Details: 52800 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 11 complete.
+
+[Round Metrics]
+  Normal Accuracy: 99.20%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.1429 seconds
+
+--- Testing Backdoor (Round 12) ---
+  - ASR Details: 58177 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 12 complete.
+
+[Round Metrics]
+  Normal Accuracy: 98.43%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.1283 seconds
+
+--- Testing Backdoor (Round 13) ---
+  - ASR Details: 56021 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 13 complete.
+
+[Round Metrics]
+  Normal Accuracy: 99.51%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.1443 seconds
+
+--- Testing Backdoor (Round 14) ---
+  - ASR Details: 53171 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 14 complete.
+
+[Round Metrics]
+  Normal Accuracy: 99.60%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.1186 seconds
+
+--- Testing Backdoor (Round 15) ---
+  - ASR Details: 58926 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 15 complete.
+
+[Round Metrics]
+  Normal Accuracy: 98.24%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.1636 seconds
+
+--- Testing Backdoor (Round 16) ---
+  - ASR Details: 58419 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 16 complete.
+
+[Round Metrics]
+  Normal Accuracy: 98.16%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.1434 seconds
+
+--- Testing Backdoor (Round 17) ---
+  - ASR Details: 58815 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 17 complete.
+
+[Round Metrics]
+  Normal Accuracy: 99.48%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.1018 seconds
+
+--- Testing Backdoor (Round 18) ---
+  - ASR Details: 58811 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 18 complete.
+
+[Round Metrics]
+  Normal Accuracy: 99.39%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.1265 seconds
+
+--- Testing Backdoor (Round 19) ---
+  - ASR Details: 58999 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 19 complete.
+
+[Round Metrics]
+  Normal Accuracy: 98.84%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.1205 seconds
+
+--- Testing Backdoor (Round 20) ---
+  - ASR Details: 58922 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 20 complete.
+
+[Round Metrics]
+  Normal Accuracy: 99.48%
+Server loading SENSOR dataset...
+
+--- Testing Backdoor (Round 0) ---
+  - ASR Details: 39 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 0 complete.
+
+[Round Metrics]
+Avg. Client Fit Time: 10.4989 seconds
+
+--- Testing Backdoor (Round 1) ---
+  - ASR Details: 13228 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 1 complete.
+
+[Round Metrics]
+  Normal Accuracy: 72.64%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0362 seconds
+
+--- Testing Backdoor (Round 2) ---
+  - ASR Details: 26011 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 2 complete.
+
+[Round Metrics]
+  Normal Accuracy: 96.85%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0327 seconds
+
+--- Testing Backdoor (Round 3) ---
+  - ASR Details: 43264 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 3 complete.
+
+[Round Metrics]
+  Normal Accuracy: 97.53%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0514 seconds
+
+--- Testing Backdoor (Round 4) ---
+  - ASR Details: 53142 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 4 complete.
+
+[Round Metrics]
+  Normal Accuracy: 97.58%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0356 seconds
+
+--- Testing Backdoor (Round 5) ---
+  - ASR Details: 55926 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 5 complete.
+
+[Round Metrics]
+  Normal Accuracy: 98.02%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0596 seconds
+
+--- Testing Backdoor (Round 6) ---
+  - ASR Details: 58789 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 6 complete.
+
+[Round Metrics]
+  Normal Accuracy: 98.08%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0487 seconds
+
+--- Testing Backdoor (Round 7) ---
+  - ASR Details: 54813 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 7 complete.
+
+[Round Metrics]
+  Normal Accuracy: 98.07%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0517 seconds
+
+--- Testing Backdoor (Round 8) ---
+  - ASR Details: 58854 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 8 complete.
+
+[Round Metrics]
+  Normal Accuracy: 98.89%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0401 seconds
+
+--- Testing Backdoor (Round 9) ---
+  - ASR Details: 58866 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 9 complete.
+
+[Round Metrics]
+  Normal Accuracy: 97.78%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0594 seconds
+
+--- Testing Backdoor (Round 10) ---
+  - ASR Details: 58983 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 10 complete.
+
+[Round Metrics]
+  Normal Accuracy: 98.33%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0588 seconds
+
+--- Testing Backdoor (Round 11) ---
+  - ASR Details: 58873 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 11 complete.
+
+[Round Metrics]
+  Normal Accuracy: 99.36%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0559 seconds
+
+--- Testing Backdoor (Round 12) ---
+  - ASR Details: 59010 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 12 complete.
+
+[Round Metrics]
+  Normal Accuracy: 99.31%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0557 seconds
+
+--- Testing Backdoor (Round 13) ---
+  - ASR Details: 58690 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 13 complete.
+
+[Round Metrics]
+  Normal Accuracy: 99.40%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0468 seconds
+
+--- Testing Backdoor (Round 14) ---
+  - ASR Details: 58866 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 14 complete.
+
+[Round Metrics]
+  Normal Accuracy: 99.18%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0312 seconds
+
+--- Testing Backdoor (Round 15) ---
+  - ASR Details: 58830 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 15 complete.
+
+[Round Metrics]
+  Normal Accuracy: 99.01%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0618 seconds
+
+--- Testing Backdoor (Round 16) ---
+  - ASR Details: 58927 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 16 complete.
+
+[Round Metrics]
+  Normal Accuracy: 99.45%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0399 seconds
+
+--- Testing Backdoor (Round 17) ---
+  - ASR Details: 58987 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 17 complete.
+
+[Round Metrics]
+  Normal Accuracy: 99.38%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0467 seconds
+
+--- Testing Backdoor (Round 18) ---
+  - ASR Details: 58986 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 18 complete.
+
+[Round Metrics]
+  Normal Accuracy: 99.41%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0368 seconds
+
+--- Testing Backdoor (Round 19) ---
+  - ASR Details: 58950 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 19 complete.
+
+[Round Metrics]
+  Normal Accuracy: 99.51%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0452 seconds
+
+--- Testing Backdoor (Round 20) ---
+  - ASR Details: 59051 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 20 complete.
+
+[Round Metrics]
+  Normal Accuracy: 99.57%
+Server loading SENSOR dataset...
+
+--- Testing Backdoor (Round 0) ---
+  - ASR Details: 0 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 0 complete.
+
+[Round Metrics]
+Avg. Client Fit Time: 10.4836 seconds
+
+--- Testing Backdoor (Round 1) ---
+  - ASR Details: 10449 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 1 complete.
+
+[Round Metrics]
+  Normal Accuracy: 76.77%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0423 seconds
+
+--- Testing Backdoor (Round 2) ---
+  - ASR Details: 14053 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 2 complete.
+
+[Round Metrics]
+  Normal Accuracy: 97.27%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0140 seconds
+
+--- Testing Backdoor (Round 3) ---
+  - ASR Details: 17004 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 3 complete.
+
+[Round Metrics]
+  Normal Accuracy: 97.51%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0368 seconds
+
+--- Testing Backdoor (Round 4) ---
+  - ASR Details: 21299 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 4 complete.
+
+[Round Metrics]
+  Normal Accuracy: 97.84%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0296 seconds
+
+--- Testing Backdoor (Round 5) ---
+  - ASR Details: 22898 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 5 complete.
+
+[Round Metrics]
+  Normal Accuracy: 98.22%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0483 seconds
+
+--- Testing Backdoor (Round 6) ---
+  - ASR Details: 27478 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 6 complete.
+
+[Round Metrics]
+  Normal Accuracy: 99.01%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0305 seconds
+
+--- Testing Backdoor (Round 7) ---
+  - ASR Details: 43013 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 7 complete.
+
+[Round Metrics]
+  Normal Accuracy: 99.11%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0198 seconds
+
+--- Testing Backdoor (Round 8) ---
+  - ASR Details: 42431 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 8 complete.
+
+[Round Metrics]
+  Normal Accuracy: 98.05%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0265 seconds
+
+--- Testing Backdoor (Round 9) ---
+  - ASR Details: 58560 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 9 complete.
+
+[Round Metrics]
+  Normal Accuracy: 99.38%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0367 seconds
+
+--- Testing Backdoor (Round 10) ---
+  - ASR Details: 54361 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 10 complete.
+
+[Round Metrics]
+  Normal Accuracy: 98.32%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0522 seconds
+
+--- Testing Backdoor (Round 11) ---
+  - ASR Details: 58922 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 11 complete.
+
+[Round Metrics]
+  Normal Accuracy: 98.20%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0409 seconds
+
+--- Testing Backdoor (Round 12) ---
+  - ASR Details: 58609 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 12 complete.
+
+[Round Metrics]
+  Normal Accuracy: 99.31%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0305 seconds
+
+--- Testing Backdoor (Round 13) ---
+  - ASR Details: 59017 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 13 complete.
+
+[Round Metrics]
+  Normal Accuracy: 99.46%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0382 seconds
+
+--- Testing Backdoor (Round 14) ---
+  - ASR Details: 59047 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 14 complete.
+
+[Round Metrics]
+  Normal Accuracy: 98.91%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0464 seconds
+
+--- Testing Backdoor (Round 15) ---
+  - ASR Details: 59054 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 15 complete.
+
+[Round Metrics]
+  Normal Accuracy: 98.53%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0713 seconds
+
+--- Testing Backdoor (Round 16) ---
+  - ASR Details: 58957 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 16 complete.
+
+[Round Metrics]
+  Normal Accuracy: 98.40%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0547 seconds
+
+--- Testing Backdoor (Round 17) ---
+  - ASR Details: 59054 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 17 complete.
+
+[Round Metrics]
+  Normal Accuracy: 99.56%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0421 seconds
+
+--- Testing Backdoor (Round 18) ---
+  - ASR Details: 59059 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 18 complete.
+
+[Round Metrics]
+  Normal Accuracy: 98.90%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0717 seconds
+
+--- Testing Backdoor (Round 19) ---
+  - ASR Details: 58756 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 19 complete.
+
+[Round Metrics]
+  Normal Accuracy: 98.43%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0361 seconds
+
+--- Testing Backdoor (Round 20) ---
+  - ASR Details: 59028 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 20 complete.
+
+[Round Metrics]
+  Normal Accuracy: 99.53%
+Server loading SENSOR dataset...
+
+--- Testing Backdoor (Round 0) ---
+  - ASR Details: 27822 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 0 complete.
+
+[Round Metrics]
+Avg. Client Fit Time: 10.4626 seconds
+
+--- Testing Backdoor (Round 1) ---
+  - ASR Details: 15250 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 1 complete.
+
+[Round Metrics]
+  Normal Accuracy: 84.69%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0286 seconds
+
+--- Testing Backdoor (Round 2) ---
+  - ASR Details: 28852 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 2 complete.
+
+[Round Metrics]
+  Normal Accuracy: 97.02%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0181 seconds
+
+--- Testing Backdoor (Round 3) ---
+  - ASR Details: 49241 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 3 complete.
+
+[Round Metrics]
+  Normal Accuracy: 97.60%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0171 seconds
+
+--- Testing Backdoor (Round 4) ---
+  - ASR Details: 55062 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 4 complete.
+
+[Round Metrics]
+  Normal Accuracy: 98.33%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0110 seconds
+
+--- Testing Backdoor (Round 5) ---
+  - ASR Details: 57148 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 5 complete.
+
+[Round Metrics]
+  Normal Accuracy: 98.87%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0372 seconds
+
+--- Testing Backdoor (Round 6) ---
+  - ASR Details: 58771 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 6 complete.
+
+[Round Metrics]
+  Normal Accuracy: 98.85%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0074 seconds
+
+--- Testing Backdoor (Round 7) ---
+  - ASR Details: 58679 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 7 complete.
+
+[Round Metrics]
+  Normal Accuracy: 98.11%
+
+[Round Metrics]
+Avg. Client Fit Time: 9.9985 seconds
+
+--- Testing Backdoor (Round 8) ---
+  - ASR Details: 58920 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 8 complete.
+
+[Round Metrics]
+  Normal Accuracy: 99.07%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0270 seconds
+
+--- Testing Backdoor (Round 9) ---
+  - ASR Details: 59025 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 9 complete.
+
+[Round Metrics]
+  Normal Accuracy: 98.52%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0143 seconds
+
+--- Testing Backdoor (Round 10) ---
+  - ASR Details: 58740 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 10 complete.
+
+[Round Metrics]
+  Normal Accuracy: 99.22%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0240 seconds
+
+--- Testing Backdoor (Round 11) ---
+  - ASR Details: 58936 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 11 complete.
+
+[Round Metrics]
+  Normal Accuracy: 97.98%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0162 seconds
+
+--- Testing Backdoor (Round 12) ---
+  - ASR Details: 59030 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 12 complete.
+
+[Round Metrics]
+  Normal Accuracy: 99.32%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0121 seconds
+
+--- Testing Backdoor (Round 13) ---
+  - ASR Details: 59056 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 13 complete.
+
+[Round Metrics]
+  Normal Accuracy: 99.10%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0236 seconds
+
+--- Testing Backdoor (Round 14) ---
+  - ASR Details: 58766 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 14 complete.
+
+[Round Metrics]
+  Normal Accuracy: 99.32%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0138 seconds
+
+--- Testing Backdoor (Round 15) ---
+  - ASR Details: 58982 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 15 complete.
+
+[Round Metrics]
+  Normal Accuracy: 99.02%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0569 seconds
+
+--- Testing Backdoor (Round 16) ---
+  - ASR Details: 59025 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 16 complete.
+
+[Round Metrics]
+  Normal Accuracy: 99.47%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0191 seconds
+
+--- Testing Backdoor (Round 17) ---
+  - ASR Details: 59028 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 17 complete.
+
+[Round Metrics]
+  Normal Accuracy: 99.45%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0219 seconds
+
+--- Testing Backdoor (Round 18) ---
+  - ASR Details: 59014 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 18 complete.
+
+[Round Metrics]
+  Normal Accuracy: 99.44%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0189 seconds
+
+--- Testing Backdoor (Round 19) ---
+  - ASR Details: 59020 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 19 complete.
+
+[Round Metrics]
+  Normal Accuracy: 99.55%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0203 seconds
+
+--- Testing Backdoor (Round 20) ---
+  - ASR Details: 59036 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 20 complete.
+
+[Round Metrics]
+  Normal Accuracy: 98.72%
+Server loading SENSOR dataset...
+
+--- Testing Backdoor (Round 0) ---
+  - ASR Details: 58909 successful flips out of 59063 vulnerable samples.
 Server-side evaluation round 0 complete.
 [Mitigation] Decrypting client updates.
 
 [Round Metrics]
-Avg. Client Fit Time: 10.5488 seconds
+Avg. Client Fit Time: 10.5340 seconds
 
 --- Testing Backdoor (Round 1) ---
-  - ASR Details: 1077 successful flips out of 59063 vulnerable samples.
+  - ASR Details: 45962 successful flips out of 59063 vulnerable samples.
 Server-side evaluation round 1 complete.
 
 [Round Metrics]
-  Normal Accuracy: 17.46%
+  Normal Accuracy: 75.60%
 [Mitigation] Decrypting client updates.
 
 [Round Metrics]
-Avg. Client Fit Time: 10.0503 seconds
+Avg. Client Fit Time: 10.0617 seconds
 
 --- Testing Backdoor (Round 2) ---
-  - ASR Details: 1 successful flips out of 59063 vulnerable samples.
+  - ASR Details: 50725 successful flips out of 59063 vulnerable samples.
 Server-side evaluation round 2 complete.
 
 [Round Metrics]
-  Normal Accuracy: 20.18%
+  Normal Accuracy: 96.22%
 [Mitigation] Decrypting client updates.
 
 [Round Metrics]
-Avg. Client Fit Time: 10.0724 seconds
+Avg. Client Fit Time: 10.0591 seconds
 
 --- Testing Backdoor (Round 3) ---
-  - ASR Details: 0 successful flips out of 59063 vulnerable samples.
+  - ASR Details: 56132 successful flips out of 59063 vulnerable samples.
 Server-side evaluation round 3 complete.
 
 [Round Metrics]
-  Normal Accuracy: 22.60%
+  Normal Accuracy: 97.69%
 [Mitigation] Decrypting client updates.
 
 [Round Metrics]
-Avg. Client Fit Time: 10.0795 seconds
+Avg. Client Fit Time: 10.0829 seconds
 
 --- Testing Backdoor (Round 4) ---
-  - ASR Details: 0 successful flips out of 59063 vulnerable samples.
+  - ASR Details: 56969 successful flips out of 59063 vulnerable samples.
 Server-side evaluation round 4 complete.
 
 [Round Metrics]
-  Normal Accuracy: 24.08%
+  Normal Accuracy: 97.51%
 [Mitigation] Decrypting client updates.
 
 [Round Metrics]
-Avg. Client Fit Time: 10.0737 seconds
+Avg. Client Fit Time: 10.0697 seconds
 
 --- Testing Backdoor (Round 5) ---
-  - ASR Details: 0 successful flips out of 59063 vulnerable samples.
+  - ASR Details: 54661 successful flips out of 59063 vulnerable samples.
 Server-side evaluation round 5 complete.
 
 [Round Metrics]
-  Normal Accuracy: 23.62%
-[Mitigation] Decrypting client updates.
-
-[Round Metrics]
-Avg. Client Fit Time: 10.0740 seconds
-
---- Testing Backdoor (Round 6) ---
-  - ASR Details: 3616 successful flips out of 59063 vulnerable samples.
-Server-side evaluation round 6 complete.
-
-[Round Metrics]
-  Normal Accuracy: 26.69%
-[Mitigation] Decrypting client updates.
-
-[Round Metrics]
-Avg. Client Fit Time: 10.0840 seconds
-
---- Testing Backdoor (Round 7) ---
-  - ASR Details: 0 successful flips out of 59063 vulnerable samples.
-Server-side evaluation round 7 complete.
-
-[Round Metrics]
-  Normal Accuracy: 34.89%
-[Mitigation] Decrypting client updates.
-
-[Round Metrics]
-Avg. Client Fit Time: 10.0686 seconds
-
---- Testing Backdoor (Round 8) ---
-  - ASR Details: 21125 successful flips out of 59063 vulnerable samples.
-Server-side evaluation round 8 complete.
-
-[Round Metrics]
-  Normal Accuracy: 19.73%
+  Normal Accuracy: 98.04%
 [Mitigation] Decrypting client updates.
 
 [Round Metrics]
 Avg. Client Fit Time: 10.0715 seconds
 
---- Testing Backdoor (Round 9) ---
-  - ASR Details: 10511 successful flips out of 59063 vulnerable samples.
-Server-side evaluation round 9 complete.
-
-[Round Metrics]
-  Normal Accuracy: 27.02%
-[Mitigation] Decrypting client updates.
-
-[Round Metrics]
-Avg. Client Fit Time: 10.0717 seconds
-
---- Testing Backdoor (Round 10) ---
-  - ASR Details: 6852 successful flips out of 59063 vulnerable samples.
-Server-side evaluation round 10 complete.
-
-[Round Metrics]
-  Normal Accuracy: 20.41%
-[Mitigation] Decrypting client updates.
-
-[Round Metrics]
-Avg. Client Fit Time: 10.0831 seconds
-
---- Testing Backdoor (Round 11) ---
-  - ASR Details: 11 successful flips out of 59063 vulnerable samples.
-Server-side evaluation round 11 complete.
-
-[Round Metrics]
-  Normal Accuracy: 23.98%
-[Mitigation] Decrypting client updates.
-
-[Round Metrics]
-Avg. Client Fit Time: 10.0616 seconds
-
---- Testing Backdoor (Round 12) ---
-  - ASR Details: 892 successful flips out of 59063 vulnerable samples.
-Server-side evaluation round 12 complete.
-
-[Round Metrics]
-  Normal Accuracy: 25.34%
-[Mitigation] Decrypting client updates.
-
-[Round Metrics]
-Avg. Client Fit Time: 10.0842 seconds
-
---- Testing Backdoor (Round 13) ---
-  - ASR Details: 7662 successful flips out of 59063 vulnerable samples.
-Server-side evaluation round 13 complete.
-
-[Round Metrics]
-  Normal Accuracy: 19.64%
-[Mitigation] Decrypting client updates.
-
-[Round Metrics]
-Avg. Client Fit Time: 10.0843 seconds
-
---- Testing Backdoor (Round 14) ---
-  - ASR Details: 722 successful flips out of 59063 vulnerable samples.
-Server-side evaluation round 14 complete.
-
-[Round Metrics]
-  Normal Accuracy: 23.13%
-[Mitigation] Decrypting client updates.
-
-[Round Metrics]
-Avg. Client Fit Time: 10.0673 seconds
-
---- Testing Backdoor (Round 15) ---
-  - ASR Details: 23180 successful flips out of 59063 vulnerable samples.
-Server-side evaluation round 15 complete.
-
-[Round Metrics]
-  Normal Accuracy: 20.55%
-[Mitigation] Decrypting client updates.
-
-[Round Metrics]
-Avg. Client Fit Time: 10.0897 seconds
-
---- Testing Backdoor (Round 16) ---
-  - ASR Details: 23010 successful flips out of 59063 vulnerable samples.
-Server-side evaluation round 16 complete.
-
-[Round Metrics]
-  Normal Accuracy: 22.78%
-[Mitigation] Decrypting client updates.
-
-[Round Metrics]
-Avg. Client Fit Time: 10.0911 seconds
-
---- Testing Backdoor (Round 17) ---
-  - ASR Details: 17468 successful flips out of 59063 vulnerable samples.
-Server-side evaluation round 17 complete.
-
-[Round Metrics]
-  Normal Accuracy: 24.76%
-[Mitigation] Decrypting client updates.
-
-[Round Metrics]
-Avg. Client Fit Time: 10.0788 seconds
-
---- Testing Backdoor (Round 18) ---
-  - ASR Details: 4 successful flips out of 59063 vulnerable samples.
-Server-side evaluation round 18 complete.
-
-[Round Metrics]
-  Normal Accuracy: 23.10%
-[Mitigation] Decrypting client updates.
-
-[Round Metrics]
-Avg. Client Fit Time: 10.0815 seconds
-
---- Testing Backdoor (Round 19) ---
-  - ASR Details: 52902 successful flips out of 59063 vulnerable samples.
-Server-side evaluation round 19 complete.
-
-[Round Metrics]
-  Normal Accuracy: 22.30%
-[Mitigation] Decrypting client updates.
-
-[Round Metrics]
-Avg. Client Fit Time: 10.0778 seconds
-
---- Testing Backdoor (Round 20) ---
-  - ASR Details: 0 successful flips out of 59063 vulnerable samples.
-Server-side evaluation round 20 complete.
-
-[Round Metrics]
-  Normal Accuracy: 31.58%
-Server loading SENSOR dataset...
-
---- Testing Backdoor (Round 0) ---
-  - ASR Details: 739 successful flips out of 59063 vulnerable samples.
-Server-side evaluation round 0 complete.
-
---- MyDefense Agent Analyzing Round ---
-  - Client 1 Utility Score: 0.6600
-  - DECISION: Client 1 update acceptable. ACCEPTING.
-  - Client 2 Utility Score: -0.0700
-  - DECISION: Client 2 utility too low. REJECTING update.
---- MyDefense Result: Aggregating 1 of 2 updates. ---
-
-[Round Metrics]
-Avg. Client Fit Time: 8.6496 seconds
-
---- Testing Backdoor (Round 1) ---
-  - ASR Details: 1391 successful flips out of 59063 vulnerable samples.
-Server-side evaluation round 1 complete.
-
-[Round Metrics]
-  Normal Accuracy: 96.91%
-Server loading SENSOR dataset...
-
---- Testing Backdoor (Round 0) ---
-  - ASR Details: 50202 successful flips out of 59063 vulnerable samples.
-Server-side evaluation round 0 complete.
-
-[Round Metrics]
-Avg. Client Fit Time: 10.5911 seconds
-
---- Testing Backdoor (Round 1) ---
-  - ASR Details: 0 successful flips out of 59063 vulnerable samples.
-Server-side evaluation round 1 complete.
-
-[Round Metrics]
-  Normal Accuracy: 16.22%
-
-[Round Metrics]
-Avg. Client Fit Time: 10.1535 seconds
-
---- Testing Backdoor (Round 2) ---
-  - ASR Details: 403 successful flips out of 59063 vulnerable samples.
-Server-side evaluation round 2 complete.
-
-[Round Metrics]
-  Normal Accuracy: 22.50%
-
-[Round Metrics]
-Avg. Client Fit Time: 10.1261 seconds
-
---- Testing Backdoor (Round 3) ---
-  - ASR Details: 11080 successful flips out of 59063 vulnerable samples.
-Server-side evaluation round 3 complete.
-
-[Round Metrics]
-  Normal Accuracy: 22.55%
-
-[Round Metrics]
-Avg. Client Fit Time: 10.1501 seconds
-
---- Testing Backdoor (Round 4) ---
-  - ASR Details: 1924 successful flips out of 59063 vulnerable samples.
-Server-side evaluation round 4 complete.
-
-[Round Metrics]
-  Normal Accuracy: 24.74%
-
-[Round Metrics]
-Avg. Client Fit Time: 10.1349 seconds
-
---- Testing Backdoor (Round 5) ---
-  - ASR Details: 1 successful flips out of 59063 vulnerable samples.
-Server-side evaluation round 5 complete.
-
-[Round Metrics]
-  Normal Accuracy: 23.50%
-
-[Round Metrics]
-Avg. Client Fit Time: 10.1548 seconds
-
 --- Testing Backdoor (Round 6) ---
-  - ASR Details: 6 successful flips out of 59063 vulnerable samples.
+  - ASR Details: 58065 successful flips out of 59063 vulnerable samples.
 Server-side evaluation round 6 complete.
 
 [Round Metrics]
-  Normal Accuracy: 30.17%
+  Normal Accuracy: 98.22%
+[Mitigation] Decrypting client updates.
 
 [Round Metrics]
-Avg. Client Fit Time: 10.1357 seconds
+Avg. Client Fit Time: 10.0599 seconds
 
 --- Testing Backdoor (Round 7) ---
-  - ASR Details: 7485 successful flips out of 59063 vulnerable samples.
+  - ASR Details: 56098 successful flips out of 59063 vulnerable samples.
 Server-side evaluation round 7 complete.
 
 [Round Metrics]
-  Normal Accuracy: 31.98%
+  Normal Accuracy: 98.31%
+[Mitigation] Decrypting client updates.
 
 [Round Metrics]
-Avg. Client Fit Time: 10.1267 seconds
+Avg. Client Fit Time: 10.0737 seconds
 
 --- Testing Backdoor (Round 8) ---
-  - ASR Details: 27111 successful flips out of 59063 vulnerable samples.
+  - ASR Details: 57533 successful flips out of 59063 vulnerable samples.
 Server-side evaluation round 8 complete.
 
 [Round Metrics]
-  Normal Accuracy: 22.46%
+  Normal Accuracy: 98.67%
+[Mitigation] Decrypting client updates.
 
 [Round Metrics]
-Avg. Client Fit Time: 10.1486 seconds
+Avg. Client Fit Time: 10.0575 seconds
 
 --- Testing Backdoor (Round 9) ---
-  - ASR Details: 11523 successful flips out of 59063 vulnerable samples.
+  - ASR Details: 58477 successful flips out of 59063 vulnerable samples.
 Server-side evaluation round 9 complete.
 
 [Round Metrics]
-  Normal Accuracy: 25.12%
+  Normal Accuracy: 99.26%
+[Mitigation] Decrypting client updates.
 
 [Round Metrics]
-Avg. Client Fit Time: 10.1551 seconds
+Avg. Client Fit Time: 10.0705 seconds
 
 --- Testing Backdoor (Round 10) ---
-  - ASR Details: 1356 successful flips out of 59063 vulnerable samples.
+  - ASR Details: 58721 successful flips out of 59063 vulnerable samples.
 Server-side evaluation round 10 complete.
 
 [Round Metrics]
-  Normal Accuracy: 26.96%
+  Normal Accuracy: 98.57%
+[Mitigation] Decrypting client updates.
 
 [Round Metrics]
-Avg. Client Fit Time: 10.1476 seconds
+Avg. Client Fit Time: 10.0611 seconds
 
 --- Testing Backdoor (Round 11) ---
-  - ASR Details: 581 successful flips out of 59063 vulnerable samples.
+  - ASR Details: 58765 successful flips out of 59063 vulnerable samples.
 Server-side evaluation round 11 complete.
 
 [Round Metrics]
-  Normal Accuracy: 21.49%
+  Normal Accuracy: 99.06%
+[Mitigation] Decrypting client updates.
 
 [Round Metrics]
-Avg. Client Fit Time: 10.1428 seconds
+Avg. Client Fit Time: 10.0512 seconds
 
 --- Testing Backdoor (Round 12) ---
-  - ASR Details: 0 successful flips out of 59063 vulnerable samples.
+  - ASR Details: 58670 successful flips out of 59063 vulnerable samples.
 Server-side evaluation round 12 complete.
 
 [Round Metrics]
-  Normal Accuracy: 27.24%
+  Normal Accuracy: 99.56%
+[Mitigation] Decrypting client updates.
 
 [Round Metrics]
-Avg. Client Fit Time: 10.1420 seconds
+Avg. Client Fit Time: 10.0551 seconds
 
 --- Testing Backdoor (Round 13) ---
-  - ASR Details: 1142 successful flips out of 59063 vulnerable samples.
+  - ASR Details: 59040 successful flips out of 59063 vulnerable samples.
 Server-side evaluation round 13 complete.
 
 [Round Metrics]
-  Normal Accuracy: 24.74%
+  Normal Accuracy: 99.60%
+[Mitigation] Decrypting client updates.
 
 [Round Metrics]
-Avg. Client Fit Time: 10.1495 seconds
+Avg. Client Fit Time: 10.0656 seconds
 
 --- Testing Backdoor (Round 14) ---
-  - ASR Details: 0 successful flips out of 59063 vulnerable samples.
+  - ASR Details: 58943 successful flips out of 59063 vulnerable samples.
 Server-side evaluation round 14 complete.
 
 [Round Metrics]
-  Normal Accuracy: 27.89%
+  Normal Accuracy: 98.40%
+[Mitigation] Decrypting client updates.
 
 [Round Metrics]
-Avg. Client Fit Time: 10.1455 seconds
+Avg. Client Fit Time: 10.0513 seconds
 
 --- Testing Backdoor (Round 15) ---
-  - ASR Details: 4425 successful flips out of 59063 vulnerable samples.
+  - ASR Details: 59029 successful flips out of 59063 vulnerable samples.
 Server-side evaluation round 15 complete.
 
 [Round Metrics]
-  Normal Accuracy: 22.12%
+  Normal Accuracy: 98.67%
+[Mitigation] Decrypting client updates.
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0656 seconds
+
+--- Testing Backdoor (Round 16) ---
+  - ASR Details: 59033 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 16 complete.
+
+[Round Metrics]
+  Normal Accuracy: 99.57%
+[Mitigation] Decrypting client updates.
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0586 seconds
+
+--- Testing Backdoor (Round 17) ---
+  - ASR Details: 58978 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 17 complete.
+
+[Round Metrics]
+  Normal Accuracy: 99.61%
+[Mitigation] Decrypting client updates.
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0370 seconds
+
+--- Testing Backdoor (Round 18) ---
+  - ASR Details: 59058 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 18 complete.
+
+[Round Metrics]
+  Normal Accuracy: 99.57%
+[Mitigation] Decrypting client updates.
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0741 seconds
+
+--- Testing Backdoor (Round 19) ---
+  - ASR Details: 59015 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 19 complete.
+
+[Round Metrics]
+  Normal Accuracy: 98.41%
+[Mitigation] Decrypting client updates.
+
+[Round Metrics]
+Avg. Client Fit Time: 10.0596 seconds
+
+--- Testing Backdoor (Round 20) ---
+  - ASR Details: 59001 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 20 complete.
+
+[Round Metrics]
+  Normal Accuracy: 99.24%
+Server loading SENSOR dataset...
+
+--- Testing Backdoor (Round 0) ---
+  - ASR Details: 465 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 0 complete.
+
+[Round Metrics]
+Avg. Client Fit Time: 10.6121 seconds
+
+--- Testing Backdoor (Round 1) ---
+  - ASR Details: 4636 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 1 complete.
+
+[Round Metrics]
+  Normal Accuracy: 71.33%
 
 [Round Metrics]
 Avg. Client Fit Time: 10.1574 seconds
 
+--- Testing Backdoor (Round 2) ---
+  - ASR Details: 15726 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 2 complete.
+
+[Round Metrics]
+  Normal Accuracy: 94.63%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.1523 seconds
+
+--- Testing Backdoor (Round 3) ---
+  - ASR Details: 19909 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 3 complete.
+
+[Round Metrics]
+  Normal Accuracy: 97.56%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.1738 seconds
+
+--- Testing Backdoor (Round 4) ---
+  - ASR Details: 27537 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 4 complete.
+
+[Round Metrics]
+  Normal Accuracy: 97.65%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.1655 seconds
+
+--- Testing Backdoor (Round 5) ---
+  - ASR Details: 51853 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 5 complete.
+
+[Round Metrics]
+  Normal Accuracy: 96.91%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.1896 seconds
+
+--- Testing Backdoor (Round 6) ---
+  - ASR Details: 43462 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 6 complete.
+
+[Round Metrics]
+  Normal Accuracy: 97.96%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.1703 seconds
+
+--- Testing Backdoor (Round 7) ---
+  - ASR Details: 52813 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 7 complete.
+
+[Round Metrics]
+  Normal Accuracy: 96.88%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.1588 seconds
+
+--- Testing Backdoor (Round 8) ---
+  - ASR Details: 45789 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 8 complete.
+
+[Round Metrics]
+  Normal Accuracy: 99.13%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.1744 seconds
+
+--- Testing Backdoor (Round 9) ---
+  - ASR Details: 41313 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 9 complete.
+
+[Round Metrics]
+  Normal Accuracy: 98.10%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.1708 seconds
+
+--- Testing Backdoor (Round 10) ---
+  - ASR Details: 41935 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 10 complete.
+
+[Round Metrics]
+  Normal Accuracy: 99.08%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.1957 seconds
+
+--- Testing Backdoor (Round 11) ---
+  - ASR Details: 42874 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 11 complete.
+
+[Round Metrics]
+  Normal Accuracy: 99.16%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.1746 seconds
+
+--- Testing Backdoor (Round 12) ---
+  - ASR Details: 59021 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 12 complete.
+
+[Round Metrics]
+  Normal Accuracy: 98.27%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.1686 seconds
+
+--- Testing Backdoor (Round 13) ---
+  - ASR Details: 55417 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 13 complete.
+
+[Round Metrics]
+  Normal Accuracy: 99.22%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.1690 seconds
+
+--- Testing Backdoor (Round 14) ---
+  - ASR Details: 58941 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 14 complete.
+
+[Round Metrics]
+  Normal Accuracy: 99.19%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.1553 seconds
+
+--- Testing Backdoor (Round 15) ---
+  - ASR Details: 58858 successful flips out of 59063 vulnerable samples.
+Server-side evaluation round 15 complete.
+
+[Round Metrics]
+  Normal Accuracy: 99.21%
+
+[Round Metrics]
+Avg. Client Fit Time: 10.1814 seconds
+
 --- Testing Backdoor (Round 16) ---
-  - ASR Details: 181 successful flips out of 59063 vulnerable samples.
+  - ASR Details: 58961 successful flips out of 59063 vulnerable samples.
 Server-side evaluation round 16 complete.
 
 [Round Metrics]
-  Normal Accuracy: 30.69%
+  Normal Accuracy: 99.50%
 
 [Round Metrics]
-Avg. Client Fit Time: 10.1380 seconds
+Avg. Client Fit Time: 10.1628 seconds
 
 --- Testing Backdoor (Round 17) ---
-  - ASR Details: 10 successful flips out of 59063 vulnerable samples.
+  - ASR Details: 58939 successful flips out of 59063 vulnerable samples.
 Server-side evaluation round 17 complete.
 
 [Round Metrics]
-  Normal Accuracy: 26.03%
+  Normal Accuracy: 99.32%
 
 [Round Metrics]
-Avg. Client Fit Time: 10.1436 seconds
+Avg. Client Fit Time: 10.1538 seconds
 
 --- Testing Backdoor (Round 18) ---
-  - ASR Details: 137 successful flips out of 59063 vulnerable samples.
+  - ASR Details: 59022 successful flips out of 59063 vulnerable samples.
 Server-side evaluation round 18 complete.
 
 [Round Metrics]
-  Normal Accuracy: 28.20%
+  Normal Accuracy: 99.50%
 
 [Round Metrics]
-Avg. Client Fit Time: 10.1391 seconds
+Avg. Client Fit Time: 10.1687 seconds
 
 --- Testing Backdoor (Round 19) ---
-  - ASR Details: 1633 successful flips out of 59063 vulnerable samples.
+  - ASR Details: 59060 successful flips out of 59063 vulnerable samples.
 Server-side evaluation round 19 complete.
 
 [Round Metrics]
-  Normal Accuracy: 21.99%
+  Normal Accuracy: 99.28%
 
 [Round Metrics]
-Avg. Client Fit Time: 10.1291 seconds
+Avg. Client Fit Time: 10.1580 seconds
 
 --- Testing Backdoor (Round 20) ---
-  - ASR Details: 40649 successful flips out of 59063 vulnerable samples.
+  - ASR Details: 58929 successful flips out of 59063 vulnerable samples.
 Server-side evaluation round 20 complete.
 
 [Round Metrics]
-  Normal Accuracy: 23.62%
+  Normal Accuracy: 99.30%

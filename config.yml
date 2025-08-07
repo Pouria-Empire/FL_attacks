@@ -1,23 +1,31 @@
 server:
   address: "0.0.0.0:8080"
-  rounds: 20
+  rounds: 5
   min_clients: 2
 
 clients:
   total: 2
-  batch_size: 32      # Batch size for all clients
-  local_epochs: 2     # Clients train for 1 full epoch on their data
+  batch_size: 64     # Batch size for all clients
+  local_epochs: 7   # Clients train for 1 full epoch on their data
   learning_rate: 0.001
 
 data:
-  type: "sensor" #image and sensor
-  path: "./data/SENSORs/full_processed_dataset.csv"
-  train_list: "train_val_list.txt"
-  test_list: "test_list.txt"
+  # type: "sensor" #image and sensor or casting
+  # path: "./data/SENSORs/full_processed_dataset.csv"
+  # train_list: "train_val_list.txt"
+  # test_list: "test_list.txt"
+
+  type: "image" # <-- New data type
+  path: "./data/casting_dataset"
+
+    # --- Configurable Parameters for image casting data---
+  img_size: 300
+  num_classes: 1 # For binary classification
+  class_names: ["ok_front", "def_front"]
 
 attacks:
   gradient_inversion:
-    enable: false
+    enable: true
     target_client: 1
     type: "dlg"   # <-- mdlg, dlg, ggl,gradinversion_plus,temporal (actually idlg)
     client_lr: 0.01
@@ -37,7 +45,7 @@ attacks:
     history_size: 1
 
   model_poisoning:
-    enable: true
+    enable: false
     malicious_clients: [2] # Client 2 will be the attacker
     type: "scaling"        # Can be "scaling", "sign_flip", or "noise"
     scale_factor: -2.0     # Used only for "scaling" attack

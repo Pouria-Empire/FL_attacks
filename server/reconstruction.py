@@ -5,7 +5,7 @@ import torchvision
 from typing import List, Dict, Optional, Tuple
 
 # Import all attack functions for both data types
-from attacks.gradient_inversion import gradinversion_attack, dlg_attack, mdlg_attack
+from attacks.gradient_inversion import dlg_attack, mdlg_attack
 from attacks.gradinversion_plus import gradinversion_group_attack
 from attacks.ggl_attack import ggl_attack
 from attacks.temporal_attack import temporal_attack
@@ -13,8 +13,8 @@ from attacks.numerical_attacks import numerical_dlg_attack
 from utils_data.sensor_data_util import load_and_preprocess_data
 
 def reconstruct_data(
-    gradients_list: List[List[np.ndarray]], 
-    attack_params: Dict, 
+    gradients_list: List[List[np.ndarray]],
+    attack_params: Dict,
     client_config: Dict,
     data_type: str,
     main_config: Dict
@@ -24,38 +24,42 @@ def reconstruct_data(
     """
     attack_type = attack_params.get("type", "dlg")
     print(f"[Attack] Attempting reconstruction for '{data_type}' data using '{attack_type}' method.")
-    
+
     # --- IMAGE RECONSTRUCTION LOGIC ---
     if data_type == "image":
-        if attack_type == "temporal":
-            return temporal_attack(
-                gradient_history=gradients_list, 
-                lr=attack_params.get("attack_lr"), 
+        # All image attacks operate on a single gradient from the list
+        gradients = gradients_list[0]
+
+        if attack_type == "dlg":
+            return dlg_attack(
+                gradients=gradients,
+                lr=attack_params.get("attack_lr"),
                 iterations=attack_params.get("iterations")
             )
-
-        gradients = gradients_list[0]
-        
-        if attack_type == "gradinversion_plus":
-            return gradinversion_group_attack(
-                gradients=gradients, batch_size=client_config.get("batch_size", 8), 
-                num_seeds=attack_params.get("num_seeds", 4), lr=attack_params.get("attack_lr"), 
-                iterations=attack_params.get("iterations"), reg_tv=attack_params.get("reg_tv", 1e-4), 
-                reg_l2=attack_params.get("reg_l2", 1e-5), reg_group=attack_params.get("reg_group", 0.005)
+        elif attack_type == "mdlg":
+            return mdlg_attack(
+                gradients=gradients,
+                lr=attack_params.get("attack_lr"),
+                iterations=attack_params.get("iterations")
             )
         elif attack_type == "ggl":
             return ggl_attack(
-                gradients=gradients, lr=attack_params.get("attack_lr"), 
+                gradients=gradients, lr=attack_params.get("attack_lr"),
                 iterations=attack_params.get("iterations")
             )
-        # Add other image attacks (dlg, mdlg, etc.) here if needed
+        elif attack_type == "gradinversion_plus":
+            return gradinversion_group_attack(
+                gradients=gradients, batch_size=client_config.get("batch_size", 8),
+                num_seeds=attack_params.get("num_seeds", 4), lr=attack_params.get("attack_lr"),
+                iterations=attack_params.get("iterations"), reg_tv=attack_params.get("reg_tv", 1e-4),
+                reg_l2=attack_params.get("reg_l2", 1e-5), reg_group=attack_params.get("reg_group", 0.005)
+            )
         else:
-            print(f"Image attack type '{attack_type}' not fully supported.")
+            print(f"Image attack type '{attack_type}' is not supported in this configuration.")
             return None
 
     # --- NUMERICAL RECONSTRUCTION LOGIC ---
     elif data_type == "sensor":
-        # For numerical data, we use the specific DLG for MLPs
         print("[Attack] Launching numerical DLG attack.")
         X, y, _ = load_and_preprocess_data(main_config["data"]["path"])
         num_features = X.shape[1]
@@ -75,17 +79,16 @@ def reconstruct_data(
 
 
 def save_reconstruction(
-    data: np.ndarray, 
-    predicted_labels: Optional[torch.Tensor], 
-    client_id: int, 
-    round_num: int, 
+    data: np.ndarray,
+    predicted_labels: Optional[torch.Tensor],
+    client_id: int,
+    round_num: int,
     reconstruction_dir: str,
     data_type: str,
-    original_data: Optional[np.ndarray] = None, 
+    original_data: Optional[np.ndarray] = None,
     original_labels: Optional[np.ndarray] = None
 ):
     """Saves the reconstructed data based on its type (image or numerical)."""
-    
     if data_type == "image":
         recon_tensor = torch.from_numpy(data)
         if original_data is not None:
@@ -103,11 +106,13 @@ def save_reconstruction(
         save_path = os.path.join(reconstruction_dir, f"reconstruction_client{client_id}_round{round_num}.txt")
         with open(save_path, "w") as f:
             f.write("--- Original Data ---\n")
-            f.write(f"Label: {original_labels}\n")
+            if original_labels is not None:
+                f.write(f"Label: {original_labels}\n")
             f.write("Features:\n")
             f.write(str(original_data))
             f.write("\n\n--- Reconstructed Data ---\n")
-            f.write(f"Predicted Label: {predicted_labels}\n")
+            if predicted_labels is not None:
+                f.write(f"Predicted Label: {predicted_labels}\n")
             f.write("Features:\n")
             f.write(str(data))
         print(f"[Attack] Saved numerical reconstruction to {save_path}")
