@@ -1,63 +1,70 @@
+Of course. Here is a comprehensive `README.md` file that summarizes your project and explains how to set it up, configure the experiments, and run the simulation for both image and sensor datasets.
 
-# Federated Learning: Attacks and Defenses Simulation BY Pouria Arefijamal
+-----
 
-This project is a simulation framework for exploring privacy and integrity attacks in Federated Learning (FL) and evaluating various defense mechanisms. It is built using Flower and PyTorch and is currently configured to work with the NIH Chest X-ray dataset.
+# Federated Learning: Attacks and Defenses Simulation Framework
+
+This project is a modular simulation framework for exploring security and privacy threats in Federated Learning (FL). It includes implementations of various state-of-the-art attacks and a suite of defensive mechanisms, including a custom adaptive defense agent. The framework is built using Flower and PyTorch and is designed to be easily adaptable to different data types, currently supporting both image (casting dataset) and numerical/time-series (sensor) data.
 
 ## Features
 
-  * **Federated Learning**: A baseline federated training pipeline with two clients and a central server.
+  * **Multi-Dataset Support**: Easily switch between image and numerical datasets via a single configuration setting.
   * **Gradient Inversion Attacks**:
-      * `DLG` / `mDLG`: Simple, single-image reconstruction.
-      * `GGL`: Advanced, GAN-based reconstruction for high-fidelity results.
-      * `GradInversion+`: State-of-the-art batch reconstruction with group consistency.
+      * `DLG` / `mDLG`: Simple, single-sample reconstruction.
+      * `GGL`: Advanced, GAN-based reconstruction for high-fidelity image results.
+      * `GradInversion+`: State-of-the-art batch reconstruction for images.
       * `Temporal`: Advanced reconstruction using gradients from multiple rounds.
-  * **Integrity Attacks**:
+  * **Integrity & Privacy Attacks**:
       * `Model Poisoning`: Malicious clients send corrupted updates to degrade model performance.
-      * `Data Poisoning (Backdoor)`: Malicious clients implant a hidden backdoor into the global model.
+      * `Data Poisoning (Backdoor)`: Malicious clients implant a hidden backdoor into the global model, adapted for both image and numerical data.
   * **Defense Mechanisms**:
-      * `Differential Privacy`, `Gradient Clipping`, `Gradient Sparsification`.
-      * `Robust Aggregation` (Median): Server-side defense against outliers.
-      * `MyDefense`: A custom, adaptive defense agent that evaluates client utility and data leakage to reject clients or trigger countermeasures.
+      * Client-Side: `Differential Privacy`, `Gradient Clipping`, `Gradient Sparsification`, and real `AES Encryption`.
+      * Server-Side: `Robust Aggregation` (Median).
+      * **`MyDefense`**: A custom, adaptive defense agent that evaluates client utility and data leakage to reject malicious updates or trigger countermeasures.
 
-## Setup
+## 1\. Setup Instructions
 
-1.  **Clone the Repository** and navigate to the project directory.
+### Step 1: Environment Setup
 
-2.  **Create a Python Environment** (e.g., using conda):
+It is recommended to use a Conda environment.
 
+```bash
+conda create -n fedlearn python=3.10
+conda activate fedlearn
+```
+
+### Step 2: Install Dependencies
+
+Install all required Python packages.
+
+```bash
+pip install -r requirements.txt
+```
+
+*(Your `requirements.txt` should contain: `flwr`, `torch`, `torchvision`, `numpy`, `pyyaml`, `scikit-image`, `scipy`, `pandas`, `matplotlib`, `pycryptodome`, `tqdm`, `scikit-learn`)*
+
+### Step 3: Prepare Datasets
+
+  * **Casting (Image) Dataset**: Place your `kaggle.json` file in the project root and run the preparation script. It will download the data and create a balanced subset for training.
     ```bash
-    conda create -n fedlearn python=3.10
-    conda activate fedlearn
+    python prepare_casting_dataset.py
     ```
+  * **Sensor (Numerical) Dataset**: Place your `full_processed_dataset.csv` in the project's root directory or a subdirectory and update the path in `config.yml`.
 
-3.  **Install Dependencies**:
+### Step 4: Pre-train the GAN Generator (for GGL Attack)
 
-    ```bash
-    pip install -r requirements.txt
-    ```
+The advanced `GGL` attack requires a pre-trained generator for the image dataset.
 
-    *(You will need to create a `requirements.txt` file containing `flwr`, `torch`, `torchvision`, `numpy`, `pyyaml`, `scikit-image`, `scipy`, `pandas`, `matplotlib`, `pycryptodome`, `kaggle`, `kagglehub`, `tqdm`)*
+```bash
+# Run this on a GPU environment (like Colab/Kaggle) for best results
+python train_strong_generator.py
+```
 
-4.  **Download the Dataset**:
+This will create the `models/strong_casting_generator.pth` file. Make sure this file is present in your local project directory before running GGL attacks.
 
-      * The `train_and_download_generator.py` script can be run in a Kaggle or Colab notebook to download the NIH dataset automatically.
-      * Alternatively, place the `NIH-Chest-X-ray-dataset` folder in the root of the project.
+## 2\. How to Run a Simulation
 
-5.  **Pre-train the GAN Generator**:
-
-      * To use the `GGL` or `Temporal` attacks, you must first pre-train the generator model. Run the training script (preferably on a GPU environment like Kaggle or Colab):
-
-    <!-- end list -->
-
-    ```bash
-    python train_strong_generator.py
-    ```
-
-    This will create the `models/strong_xray_generator.pth` file, which is required by the attacks.
-
-## How to Run a Simulation
-
-The simulation requires three separate terminal windows.
+The simulation requires opening a separate terminal for the server and each client.
 
 1.  **Terminal 1: Start the Server**
 
@@ -65,60 +72,55 @@ The simulation requires three separate terminal windows.
     python -m server.main
     ```
 
-2.  **Terminal 2: Start Client 1**
+2.  **Terminals 2...N: Start the Clients**
+    Use the `run_client.py` launcher script. Specify a unique `--cid` for each client and the `--type` corresponding to your `config.yml`.
 
-    ```bash
-    python client.py --cid client1
-    ```
+      * **To run an image client:**
+        ```bash
+        python run_client.py --cid client1 --type image
+        ```
+      * **To run a sensor data client:**
+        ```bash
+        python run_client.py --cid client2 --type sensor
+        ```
 
-3.  **Terminal 3: Start Client 2**
+## 3\. How to Configure Experiments
 
-    ```bash
-    python client.py --cid client2
-    ```
+All experiments are controlled from the **`config.yml`** file.
 
-## How to Configure Experiments
+### Example A: Baseline Training (Sensor Data)
 
-All experiments are controlled by the **`config.yml`** file.
-
-### Example 1: Test a GGL Attack
-
-This configuration enables a `ggl` attack from `client1` with no defenses active.
-
-```yaml
-attacks:
-  gradient_inversion:
-    enable: true
-    target_client: 1
-    type: "ggl"
-    attack_lr: 0.01
-    iterations: 10000
-
-mitigations:
-  enable: false
-  defense_type: "none"
-```
-
-### Example 2: Test a Data Poisoning Attack
-
-This configuration enables a backdoor attack from `client2`.
+This runs a normal training session with all attacks and defenses disabled.
 
 ```yaml
+data:
+  type: "sensor"
+  path: "./full_processed_dataset.csv"
+
 attacks:
   gradient_inversion:
     enable: false
+  model_poisoning:
+    enable: false
   data_poisoning:
-    enable: true
-    malicious_clients: [2]
-    target_label_idx: 7 # Index for 'Pneumothorax'
-    poison_frac: 0.5
+    enable: false
+
+mitigations:
+  enable: false
 ```
 
-### Example 3: Test the `MyDefense` Agent
+### Example B: Test a GGL Attack (Image Data)
 
-This configuration enables your custom adaptive defense against a `ggl` attack.
+This enables a `ggl` attack from `client1` on the casting dataset.
 
 ```yaml
+data:
+  type: "image"
+  path: "./casting_dataset"
+  img_size: 128
+  num_classes: 1 
+  class_names: ["def_front", "ok_front"]
+
 attacks:
   gradient_inversion:
     enable: true
@@ -126,52 +128,28 @@ attacks:
     type: "ggl"
     attack_lr: 0.01
     iterations: 10000
+```
+
+### Example C: Test Your Custom `MyDefense` Agent
+
+This enables your adaptive defense against a model poisoning attack on the sensor dataset. The server will evaluate each client's utility and reject harmful updates.
+
+```yaml
+data:
+  type: "sensor"
+  path: "./full_processed_dataset.csv"
+
+attacks:
+  model_poisoning:
+    enable: true
+    malicious_clients: [2]
+    type: "scaling"
+    scale_factor: -5.0
 
 mitigations:
   enable: true
   defense_type: "mydefense"
   mydefense_params:
     utility_threshold: -0.005
-    leakage_threshold: 0.6
-    chaos_key: 3.99
+    leakage_threshold: 0.95 # High, as we don't expect leakage here
 ```
-
-### Project structure
-FL_attacks/
-├── server/
-│   ├── __init__.py
-│   ├── main.py
-│   ├── strategy.py
-│   ├── helpers.py
-│   └── reconstruction.py
-├── client.py
-├── config.yml
-├── model.py
-├── chest_data_util.py
-├── crypto_utils.py
-├── attacks/
-│   ├── __init__.py
-│   ├── gradient_inversion.py
-│   ├── gradinversion_plus.py
-│   ├── ggl_attack.py
-│   ├── strong_ggl_attack.py
-│   ├── temporal_attack.py
-│   ├── data_poisoning.py
-│   ├── model_poisoning.py
-│   └── defenses.py
-├── defense/
-│   ├── __init__.py
-│   └── mydefense.py
-├── train_strong_generator.py
-├── create_subset.py
-├── visualize_backdoor_effect.py
-├── plot_metrics.py
-├── NIH-Chest-X-ray-dataset/
-│   └── data/
-│       ├── images/
-│       ├── images_001/, ..., images_012/
-│       ├── Data_Entry_2017_v2020.csv
-│       ├── train_val_list.txt
-│       └── test_list.txt
-└── models/
-    └── full_xray.pth

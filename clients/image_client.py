@@ -101,6 +101,7 @@ class ImageFlowerClient(fl.client.NumPyClient):
 
     def fit(self, parameters: List[np.ndarray], config: dict) -> Tuple[List[np.ndarray], int, dict]:
         fit_start_time = time.time()
+        
         self.set_parameters(parameters)
         original_parameters = self.get_parameters({})
         
@@ -108,7 +109,6 @@ class ImageFlowerClient(fl.client.NumPyClient):
         is_gi_target = (gi_params.get("enable", False) and self.client_id_numeric == gi_params.get("target_client"))
         params_to_send, num_examples = None, 0
         metrics = {}
-        metrics["data_type"] = "image"
 
         if is_gi_target:
             attack_type = gi_params.get("type", "dlg")
@@ -122,13 +122,11 @@ class ImageFlowerClient(fl.client.NumPyClient):
             
             os.makedirs("client_data", exist_ok=True)
             with open(f"client_data/client_{self.client_id_numeric}_image_data.pkl", "wb") as f:
-                # --- THE FIX: Use the correct variable name 'batch_target' ---
                 pickle.dump({'data': batch_data.numpy(), 'label': batch_target.numpy()}, f)
             
             self.model.train()
             criterion = torch.nn.BCEWithLogitsLoss()
             output = self.model(batch_data)
-            # --- THE FIX: Use the correct variable name 'batch_target' ---
             loss = criterion(output, batch_target.float().view(-1, 1))
             gradients = torch.autograd.grad(loss, self.model.parameters())
             params_to_send = [grad.cpu().numpy() for grad in gradients]
@@ -150,14 +148,16 @@ class ImageFlowerClient(fl.client.NumPyClient):
 
         # --- APPLY DEFENSES ---
         defense_start_time = time.time()
-        # Note: This block applies defenses to gradients for GI and to deltas for others.
-        # This is a simplification; a more robust system might unify this.
         if config.get("apply_chaotic_encryption", False):
             params_to_send = chaotic_encryption(params_to_send)
         
         defense_type = config.get("defense_type")
         if defense_type == "clipping":
             params_to_send = gradient_clipping(params_to_send, config.get("clipping_norm"))
+        elif defense_type == "sparsification":
+            params_to_send = gradient_sparsification(params_to_send, config.get("sparsity"))
+        elif defense_type == "dp":
+            params_to_send = add_differential_privacy(params_to_send, config.get("clipping_norm"), config.get("noise_multiplier"))
         elif defense_type == "encryption":
             encrypted_bytes = encrypt_params(params_to_send)
             params_to_send = [np.frombuffer(encrypted_bytes, dtype=np.uint8)]

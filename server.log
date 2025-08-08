@@ -2,168 +2,218 @@ Server loading CASTING dataset...
 Loaded casting dataset. Train size: 2298, Test size: 576
 Classes found: ['def_front', 'ok_front']
 Server-side evaluation round 0 complete.
+
+--- MyDefense Agent Analyzing Round ---
+  - Client 2 Contribution Utility Score: -0.1000
+  - DECISION: Client 2 update is acceptable. ACCEPTING.
+-> Analyzing Gradient Inversion target: Client 1 (image data)
 [Attack] Attempting reconstruction for 'image' data using 'ggl' method.
-Iteration 0/8000, Grad Loss: 6.5304
-Iteration 500/8000, Grad Loss: 5.4182
-Iteration 1000/8000, Grad Loss: 4.7930
-Iteration 1500/8000, Grad Loss: 4.4760
-Iteration 2000/8000, Grad Loss: 4.3524
-Iteration 2500/8000, Grad Loss: 4.3221
-Iteration 3000/8000, Grad Loss: 4.3179
-Iteration 3500/8000, Grad Loss: 4.3175
-Iteration 4000/8000, Grad Loss: 4.3174
-Iteration 4500/8000, Grad Loss: 4.3204
-Iteration 5000/8000, Grad Loss: 4.3203
-Iteration 5500/8000, Grad Loss: 4.3204
-Iteration 6000/8000, Grad Loss: 4.3173
-Iteration 6500/8000, Grad Loss: 4.3171
-Iteration 7000/8000, Grad Loss: 4.3170
-Iteration 7500/8000, Grad Loss: 4.3151
+Iteration 0/8000, Grad Loss: 2.3779
+Iteration 500/8000, Grad Loss: 1.9290
+Iteration 1000/8000, Grad Loss: 1.7586
+Iteration 1500/8000, Grad Loss: 1.7278
+Iteration 2000/8000, Grad Loss: 1.7184
+Iteration 2500/8000, Grad Loss: 1.7207
+Iteration 3000/8000, Grad Loss: 1.7188
+Iteration 3500/8000, Grad Loss: 1.7134
+Iteration 4000/8000, Grad Loss: 1.7099
+Iteration 4500/8000, Grad Loss: 1.7093
+Iteration 5000/8000, Grad Loss: 1.7092
+Iteration 5500/8000, Grad Loss: 1.7089
+Iteration 6000/8000, Grad Loss: 1.7147
+Iteration 6500/8000, Grad Loss: 1.7143
+Iteration 7000/8000, Grad Loss: 1.7140
+Iteration 7500/8000, Grad Loss: 1.7141
 
 --- Image Reconstruction Quality Metrics ---
-  MSE (↓ is better):      0.1350
-  PSNR (↑ is better):     7.84 dB
-  SSIM (↑ is better):     0.1476
-  Cosine Sim (↑ is better):0.8865
-  RDLV (↑ is better):     0.1375
+  MSE (↓ is better):      0.1219
+  PSNR (↑ is better):     8.54 dB
+  SSIM (↑ is better):     0.1830
+  Cosine Sim (↑ is better):0.9078
+  RDLV (↑ is better):     0.1755
 ------------------------------------------
 [Attack] Saved image comparison grid to reconstructions/comparison_client1_round1.png
+  - Client 1 Contribution Utility Score: 0.0000
+  - Client 1 Data Leakage (MyFunc): 0.1830
+  - DECISION: High data leakage. Triggering chaotic encryption for Client 1.
+  - DECISION: Client 1 update is acceptable. ACCEPTING.
+--- MyDefense Result: Aggregating 2 of 2 updates. ---
 
 [Round Metrics]
-Avg. Client Fit Time: 8.9256 seconds
+Avg. Client Fit Time: 4.4949 seconds
 Server-side evaluation round 1 complete.
 
 [Round Metrics]
-  Normal Accuracy: 76.91%
+  Normal Accuracy: 84.20%
+
+[Mitigation] Instructing Client 1 to apply Chaotic Obfuscation.
+
+--- MyDefense Agent Analyzing Round ---
+  - Client 2 Contribution Utility Score: -0.0700
+  - DECISION: Client 2 update is acceptable. ACCEPTING.
+-> Analyzing Gradient Inversion target: Client 1 (image data)
 [Attack] Attempting reconstruction for 'image' data using 'ggl' method.
-Iteration 0/8000, Grad Loss: 481.6701
-Iteration 500/8000, Grad Loss: 481.4982
-Iteration 1000/8000, Grad Loss: 481.3786
-Iteration 1500/8000, Grad Loss: 481.3231
-Iteration 2000/8000, Grad Loss: 481.3390
-Iteration 2500/8000, Grad Loss: 481.2789
-Iteration 3000/8000, Grad Loss: 481.2883
-Iteration 3500/8000, Grad Loss: 481.2953
-Iteration 4000/8000, Grad Loss: 481.2183
-Iteration 4500/8000, Grad Loss: 481.2462
-Iteration 5000/8000, Grad Loss: 481.1840
-Iteration 5500/8000, Grad Loss: 481.2486
-Iteration 6000/8000, Grad Loss: 481.1597
-Iteration 6500/8000, Grad Loss: 481.1181
-Iteration 7000/8000, Grad Loss: 481.1264
-Iteration 7500/8000, Grad Loss: 481.1927
+Iteration 0/8000, Grad Loss: 12.9015
+Iteration 500/8000, Grad Loss: 12.6031
+Iteration 1000/8000, Grad Loss: 12.5923
+Iteration 1500/8000, Grad Loss: 12.5922
+Iteration 2000/8000, Grad Loss: 12.5923
+Iteration 2500/8000, Grad Loss: 12.5916
+Iteration 3000/8000, Grad Loss: 12.5916
+Iteration 3500/8000, Grad Loss: 12.5915
+Iteration 4000/8000, Grad Loss: 12.5909
+Iteration 4500/8000, Grad Loss: 12.5902
+Iteration 5000/8000, Grad Loss: 12.5894
+Iteration 5500/8000, Grad Loss: 12.5897
+Iteration 6000/8000, Grad Loss: 12.5895
+Iteration 6500/8000, Grad Loss: 12.5888
+Iteration 7000/8000, Grad Loss: 12.5887
+Iteration 7500/8000, Grad Loss: 12.5883
 
 --- Image Reconstruction Quality Metrics ---
-  MSE (↓ is better):      0.1392
-  PSNR (↑ is better):     8.07 dB
-  SSIM (↑ is better):     0.1308
-  Cosine Sim (↑ is better):0.8277
-  RDLV (↑ is better):     0.1280
+  MSE (↓ is better):      0.0701
+  PSNR (↑ is better):     10.98 dB
+  SSIM (↑ is better):     0.1925
+  Cosine Sim (↑ is better):0.8924
+  RDLV (↑ is better):     0.1834
 ------------------------------------------
 [Attack] Saved image comparison grid to reconstructions/comparison_client1_round2.png
+  - Client 1 Contribution Utility Score: -0.9000
+  - DECISION: Client contribution utility is too low. REJECTING update.
+--- MyDefense Result: Aggregating 1 of 2 updates. ---
 
 [Round Metrics]
-Avg. Client Fit Time: 8.9226 seconds
+Avg. Client Fit Time: 8.9885 seconds
 Server-side evaluation round 2 complete.
 
 [Round Metrics]
-  Normal Accuracy: 75.69%
+  Normal Accuracy: 88.37%
+
+--- MyDefense Agent Analyzing Round ---
+-> Analyzing Gradient Inversion target: Client 1 (image data)
 [Attack] Attempting reconstruction for 'image' data using 'ggl' method.
-Iteration 0/8000, Grad Loss: 83.8901
-Iteration 500/8000, Grad Loss: 82.9405
-Iteration 1000/8000, Grad Loss: 82.3260
-Iteration 1500/8000, Grad Loss: 82.0539
-Iteration 2000/8000, Grad Loss: 81.9294
-Iteration 2500/8000, Grad Loss: 81.8919
-Iteration 3000/8000, Grad Loss: 81.8881
-Iteration 3500/8000, Grad Loss: 81.8874
-Iteration 4000/8000, Grad Loss: 81.8874
-Iteration 4500/8000, Grad Loss: 81.8873
-Iteration 5000/8000, Grad Loss: 81.8874
-Iteration 5500/8000, Grad Loss: 81.8874
-Iteration 6000/8000, Grad Loss: 81.8874
-Iteration 6500/8000, Grad Loss: 81.8874
-Iteration 7000/8000, Grad Loss: 81.8874
-Iteration 7500/8000, Grad Loss: 81.8874
+Iteration 0/8000, Grad Loss: 29.6433
+Iteration 500/8000, Grad Loss: 29.1236
+Iteration 1000/8000, Grad Loss: 28.9608
+Iteration 1500/8000, Grad Loss: 28.9190
+Iteration 2000/8000, Grad Loss: 28.9136
+Iteration 2500/8000, Grad Loss: 28.9134
+Iteration 3000/8000, Grad Loss: 28.9134
+Iteration 3500/8000, Grad Loss: 28.9134
+Iteration 4000/8000, Grad Loss: 28.9134
+Iteration 4500/8000, Grad Loss: 28.9132
+Iteration 5000/8000, Grad Loss: 28.9131
+Iteration 5500/8000, Grad Loss: 28.9135
+Iteration 6000/8000, Grad Loss: 28.9135
+Iteration 6500/8000, Grad Loss: 28.9135
+Iteration 7000/8000, Grad Loss: 28.9135
+Iteration 7500/8000, Grad Loss: 28.9135
 
 --- Image Reconstruction Quality Metrics ---
-  MSE (↓ is better):      0.1035
-  PSNR (↑ is better):     9.33 dB
-  SSIM (↑ is better):     0.2380
-  Cosine Sim (↑ is better):0.8881
-  RDLV (↑ is better):     0.2371
+  MSE (↓ is better):      0.0326
+  PSNR (↑ is better):     14.45 dB
+  SSIM (↑ is better):     0.4179
+  Cosine Sim (↑ is better):0.9520
+  RDLV (↑ is better):     0.4148
 ------------------------------------------
 [Attack] Saved image comparison grid to reconstructions/comparison_client1_round3.png
+  - Client 1 Contribution Utility Score: -0.8300
+  - DECISION: Client contribution utility is too low. REJECTING update.
+  - Client 2 Contribution Utility Score: 0.1300
+  - DECISION: Client 2 update is acceptable. ACCEPTING.
+--- MyDefense Result: Aggregating 1 of 2 updates. ---
 
 [Round Metrics]
-Avg. Client Fit Time: 8.9930 seconds
+Avg. Client Fit Time: 9.0539 seconds
 Server-side evaluation round 3 complete.
 
 [Round Metrics]
-  Normal Accuracy: 85.24%
+  Normal Accuracy: 86.11%
+
+--- MyDefense Agent Analyzing Round ---
+  - Client 2 Contribution Utility Score: -0.1250
+  - DECISION: Client contribution utility is too low. REJECTING update.
+-> Analyzing Gradient Inversion target: Client 1 (image data)
 [Attack] Attempting reconstruction for 'image' data using 'ggl' method.
-Iteration 0/8000, Grad Loss: 0.0173
-Iteration 500/8000, Grad Loss: 0.0048
-Iteration 1000/8000, Grad Loss: 0.0048
-Iteration 1500/8000, Grad Loss: 0.0048
-Iteration 2000/8000, Grad Loss: 0.0048
-Iteration 2500/8000, Grad Loss: 0.0048
-Iteration 3000/8000, Grad Loss: 0.0048
-Iteration 3500/8000, Grad Loss: 0.0048
-Iteration 4000/8000, Grad Loss: 0.0048
-Iteration 4500/8000, Grad Loss: 0.0048
-Iteration 5000/8000, Grad Loss: 0.0048
-Iteration 5500/8000, Grad Loss: 0.0048
-Iteration 6000/8000, Grad Loss: 0.0048
-Iteration 6500/8000, Grad Loss: 0.0048
-Iteration 7000/8000, Grad Loss: 0.0048
-Iteration 7500/8000, Grad Loss: 0.0048
+Iteration 0/8000, Grad Loss: 5552.3115
+Iteration 500/8000, Grad Loss: 5551.8574
+Iteration 1000/8000, Grad Loss: 5551.8027
+Iteration 1500/8000, Grad Loss: 5551.3018
+Iteration 2000/8000, Grad Loss: 5551.1509
+Iteration 2500/8000, Grad Loss: 5550.3979
+Iteration 3000/8000, Grad Loss: 5550.6816
+Iteration 3500/8000, Grad Loss: 5550.0713
+Iteration 4000/8000, Grad Loss: 5548.5742
+Iteration 4500/8000, Grad Loss: 5549.6357
+Iteration 5000/8000, Grad Loss: 5548.8682
+Iteration 5500/8000, Grad Loss: 5548.1128
+Iteration 6000/8000, Grad Loss: 5547.7168
+Iteration 6500/8000, Grad Loss: 5548.5830
+Iteration 7000/8000, Grad Loss: 5548.0308
+Iteration 7500/8000, Grad Loss: 5547.9722
 
 --- Image Reconstruction Quality Metrics ---
-  MSE (↓ is better):      0.1024
-  PSNR (↑ is better):     9.08 dB
-  SSIM (↑ is better):     0.2830
-  Cosine Sim (↑ is better):0.8906
-  RDLV (↑ is better):     0.2800
+  MSE (↓ is better):      0.0771
+  PSNR (↑ is better):     9.48 dB
+  SSIM (↑ is better):     0.1151
+  Cosine Sim (↑ is better):0.8904
+  RDLV (↑ is better):     0.1113
 ------------------------------------------
 [Attack] Saved image comparison grid to reconstructions/comparison_client1_round4.png
+  - Client 1 Contribution Utility Score: 0.0400
+  - Client 1 Data Leakage (MyFunc): 0.1151
+  - DECISION: High data leakage. Triggering chaotic encryption for Client 1.
+  - DECISION: Client 1 update is acceptable. ACCEPTING.
+--- MyDefense Result: Aggregating 1 of 2 updates. ---
 
 [Round Metrics]
-Avg. Client Fit Time: 8.9635 seconds
+Avg. Client Fit Time: 0.0043 seconds
 Server-side evaluation round 4 complete.
 
 [Round Metrics]
-  Normal Accuracy: 86.98%
+  Normal Accuracy: 50.00%
+
+[Mitigation] Instructing Client 1 to apply Chaotic Obfuscation.
+
+--- MyDefense Agent Analyzing Round ---
+  - Client 2 Contribution Utility Score: 0.0000
+  - DECISION: Client 2 update is acceptable. ACCEPTING.
+-> Analyzing Gradient Inversion target: Client 1 (image data)
 [Attack] Attempting reconstruction for 'image' data using 'ggl' method.
-Iteration 0/8000, Grad Loss: 74.9713
-Iteration 500/8000, Grad Loss: 74.6062
-Iteration 1000/8000, Grad Loss: 74.5986
-Iteration 1500/8000, Grad Loss: 74.5986
-Iteration 2000/8000, Grad Loss: 74.5955
-Iteration 2500/8000, Grad Loss: 74.5937
-Iteration 3000/8000, Grad Loss: 74.5962
-Iteration 3500/8000, Grad Loss: 74.5961
-Iteration 4000/8000, Grad Loss: 74.5944
-Iteration 4500/8000, Grad Loss: 74.5937
-Iteration 5000/8000, Grad Loss: 74.5936
-Iteration 5500/8000, Grad Loss: 74.5952
-Iteration 6000/8000, Grad Loss: 74.5956
-Iteration 6500/8000, Grad Loss: 74.5946
-Iteration 7000/8000, Grad Loss: 74.5934
-Iteration 7500/8000, Grad Loss: 74.5953
+Iteration 0/8000, Grad Loss: 0.3168
+Iteration 500/8000, Grad Loss: 0.0160
+Iteration 1000/8000, Grad Loss: 0.0002
+Iteration 1500/8000, Grad Loss: 0.0000
+Iteration 2000/8000, Grad Loss: 0.0000
+Iteration 2500/8000, Grad Loss: 0.0000
+Iteration 3000/8000, Grad Loss: 0.0000
+Iteration 3500/8000, Grad Loss: 0.0000
+Iteration 4000/8000, Grad Loss: 0.0000
+Iteration 4500/8000, Grad Loss: 0.0000
+Iteration 5000/8000, Grad Loss: 0.0000
+Iteration 5500/8000, Grad Loss: 0.0000
+Iteration 6000/8000, Grad Loss: 0.0000
+Iteration 6500/8000, Grad Loss: 0.0000
+Iteration 7000/8000, Grad Loss: 0.0000
+Iteration 7500/8000, Grad Loss: 0.0000
 
 --- Image Reconstruction Quality Metrics ---
-  MSE (↓ is better):      0.0702
-  PSNR (↑ is better):     11.01 dB
-  SSIM (↑ is better):     0.2398
-  Cosine Sim (↑ is better):0.9153
-  RDLV (↑ is better):     0.2329
+  MSE (↓ is better):      0.0449
+  PSNR (↑ is better):     12.77 dB
+  SSIM (↑ is better):     0.2866
+  Cosine Sim (↑ is better):0.9344
+  RDLV (↑ is better):     0.2840
 ------------------------------------------
 [Attack] Saved image comparison grid to reconstructions/comparison_client1_round5.png
+  - Client 1 Contribution Utility Score: 0.0000
+  - Client 1 Data Leakage (MyFunc): 0.2866
+  - DECISION: High data leakage. Triggering chaotic encryption for Client 1.
+  - DECISION: Client 1 update is acceptable. ACCEPTING.
+--- MyDefense Result: Aggregating 2 of 2 updates. ---
 
 [Round Metrics]
-Avg. Client Fit Time: 8.9983 seconds
+Avg. Client Fit Time: 4.5193 seconds
 Server-side evaluation round 5 complete.
 
 [Round Metrics]
-  Normal Accuracy: 77.43%
+  Normal Accuracy: 50.00%
