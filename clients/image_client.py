@@ -72,7 +72,7 @@ class ImageFlowerClient(fl.client.NumPyClient):
             data_path=self.data_config["path"],
             img_size=self.data_config["img_size"]
         )
-        
+
         dp_params = self.attack_config.get("data_poisoning", {})
         is_dp_malicious = (dp_params.get("enable", False) and self.client_id_numeric in dp_params.get("malicious_clients", []))
         if is_dp_malicious:
@@ -82,6 +82,19 @@ class ImageFlowerClient(fl.client.NumPyClient):
                 poison_frac=dp_params.get("poison_frac", 0.3), 
                 target_label=dp_params.get("target_label", 1)
             )
+        gi_params = self.attack_config.get("gradient_inversion", {})
+        is_gi_target = (gi_params.get("enable", False) and self.client_id_numeric == gi_params.get("target_client"))
+
+        # If this client is the GI target, use the special attack batch size
+        if is_gi_target and "attack_batch_size" in gi_params:
+            batch_size = gi_params["attack_batch_size"]
+            print(f"Client {self.client_id_numeric} (Attacker): Using attack batch size of {batch_size}")
+        else:
+            # Otherwise, use the normal batch size
+            batch_size = self.client_config["batch_size"]
+        
+        self.trainloader = DataLoader(self.trainset, batch_size=batch_size, shuffle=True)
+        self.testloader = DataLoader(self.testset, batch_size=self.client_config["batch_size"])
 
         self.trainloader = DataLoader(self.trainset, batch_size=self.client_config["batch_size"], shuffle=True)
         self.testloader = DataLoader(self.testset, batch_size=self.client_config["batch_size"])

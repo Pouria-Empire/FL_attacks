@@ -11,6 +11,8 @@ from attacks.ggl_attack import ggl_attack
 from attacks.temporal_attack import temporal_attack
 from attacks.numerical_attacks import numerical_dlg_attack
 from utils_data.sensor_data_util import load_and_preprocess_data
+from attacks.ggl_plus_attack import ggl_group_attack
+
 
 def reconstruct_data(
     gradients_list: List[List[np.ndarray]],
@@ -24,6 +26,12 @@ def reconstruct_data(
     """
     attack_type = attack_params.get("type", "dlg")
     print(f"[Attack] Attempting reconstruction for '{data_type}' data using '{attack_type}' method.")
+
+    # This check gracefully handles encrypted payloads, preventing a crash.
+    raw_gradients = gradients_list[0]
+    if len(raw_gradients) == 1 and raw_gradients[0].dtype == np.uint8:
+        print(f"[Attack Failed] Received encrypted gradients. Encryption defense was successful.")
+        return None
 
     # --- IMAGE RECONSTRUCTION LOGIC ---
     if data_type == "image":
@@ -53,6 +61,19 @@ def reconstruct_data(
                 num_seeds=attack_params.get("num_seeds", 4), lr=attack_params.get("attack_lr"),
                 iterations=attack_params.get("iterations"), reg_tv=attack_params.get("reg_tv", 1e-4),
                 reg_l2=attack_params.get("reg_l2", 1e-5), reg_group=attack_params.get("reg_group", 0.005)
+            )
+        elif attack_type == "ggl_plus":
+            batch_size = attack_params.get("attack_batch_size", client_config.get("batch_size"))
+            print(f"[Attack] Using batch size: {batch_size} for GGL+ reconstruction.")
+            return ggl_group_attack(
+                gradients=gradients,
+                batch_size=batch_size,
+                num_seeds=attack_params.get("num_seeds", 4),
+                lr=attack_params.get("attack_lr"),
+                iterations=attack_params.get("iterations"),
+                reg_tv=attack_params.get("reg_tv"),
+                reg_l2=attack_params.get("reg_l2"),
+                reg_group=attack_params.get("reg_group")
             )
         else:
             print(f"Image attack type '{attack_type}' is not supported in this configuration.")
@@ -93,7 +114,16 @@ def save_reconstruction(
         recon_tensor = torch.from_numpy(data)
         if original_data is not None:
             original_tensor = torch.from_numpy(original_data)
-            comparison_grid = torch.cat([original_tensor, recon_tensor])
+            
+            if original_tensor.shape[0] != recon_tensor.shape[0]:
+                print(f"🔴 WARNING: Mismatch between original ({original_tensor.shape[0]}) and reconstructed ({recon_tensor.shape[0]}) batch sizes.")
+                save_path = os.path.join(reconstruction_dir, f"reconstruction_client{client_id}_round{round_num}.png")
+                torchvision.utils.save_image(recon_tensor, save_path, nrow=recon_tensor.shape[0])
+                return
+
+            # Create the vertical grid: original images on top, reconstructed below
+            comparison_grid = torch.cat([original_tensor, recon_tensor], dim=0)
+            
             save_path = os.path.join(reconstruction_dir, f"comparison_client{client_id}_round{round_num}.png")
             torchvision.utils.save_image(comparison_grid, save_path, nrow=original_tensor.size(0))
             print(f"[Attack] Saved image comparison grid to {save_path}")

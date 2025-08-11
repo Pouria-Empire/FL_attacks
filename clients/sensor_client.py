@@ -103,7 +103,18 @@ class SensorFlowerClient(fl.client.NumPyClient):
             
             # Now, assign the poisoned dataset to the client
             self.trainset = poisoned_dataset
-            # --- END DEBUGGING ---
+
+        gi_params = self.attack_config.get("gradient_inversion", {})
+        is_gi_target = (gi_params.get("enable", False) and self.client_id_numeric == gi_params.get("target_client"))
+
+        if is_gi_target and "attack_batch_size" in gi_params:
+            batch_size = gi_params["attack_batch_size"]
+            print(f"Client {self.client_id_numeric} (Attacker): Using attack batch size of {batch_size}")
+        else:
+            batch_size = self.client_config["batch_size"]
+        
+        self.trainloader = DataLoader(self.trainset, batch_size=batch_size, shuffle=True)
+        self.testloader = DataLoader(self.testset, batch_size=self.client_config["batch_size"])
 
         self.trainloader = DataLoader(self.trainset, batch_size=self.client_config["batch_size"], shuffle=True)
         self.testloader = DataLoader(self.testset, batch_size=self.client_config["batch_size"])

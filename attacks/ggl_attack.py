@@ -8,7 +8,7 @@ from collections import OrderedDict
 # Import the correct model the attack is targeting
 from model import CastingCNN
 
-# --- THE FIX: This architecture MUST match the one in your training script ---
+# This Generator class MUST be identical to the one in your training script
 class StrongGenerator(nn.Module):
     """A DCGAN-style generator for 128x128 grayscale images."""
     def __init__(self, latent_dim=100, channels=1):
@@ -63,7 +63,7 @@ def ggl_attack(
     dummy_latent = torch.randn(1, latent_dim, requires_grad=True)
     dummy_logits = torch.randn((1, 1), requires_grad=True)
     
-    # The dummy model must also be for 128x128 images
+    # --- THE FIX: The dummy model MUST be an exact replica of the client's CastingCNN ---
     dummy_model = CastingCNN(num_classes=1)
 
     optimizer = torch.optim.Adam([dummy_latent, dummy_logits], lr=lr)
@@ -71,11 +71,14 @@ def ggl_attack(
     for it in range(iterations):
         optimizer.zero_grad()
         dummy_data = generator(dummy_latent)
+        # Rescale from Tanh's [-1, 1] to the data's [0, 1] range
         dummy_data = (dummy_data + 1) / 2
 
         dummy_pred = dummy_model(dummy_data)
         
+        # Use BCEWithLogitsLoss for binary classification
         loss_cls = F.binary_cross_entropy_with_logits(dummy_pred, torch.sigmoid(dummy_logits))
+        
         dy_dx = torch.autograd.grad(loss_cls, list(dummy_model.parameters()), create_graph=True)
         
         grad_loss = sum(((gx - gy) ** 2).sum() for gx, gy in zip(original_dy_dx, dy_dx))
