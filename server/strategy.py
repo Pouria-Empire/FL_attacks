@@ -109,6 +109,7 @@ class SecureFedAvg(FedAvg):
                     reconstruction_result = self._reconstruct_data([raw_gradients], gi_params, data_type)
                     
                     if reconstruction_result is not None:
+                        print("reconstruction is not null")
                         reconstructed_data, predicted_labels = reconstruction_result if isinstance(reconstruction_result, tuple) else (reconstruction_result, None)
                         original_data, original_labels = None, None
                         data_path = f"client_data/client_{target_client_id}_{data_type}_data.pkl"
@@ -118,6 +119,7 @@ class SecureFedAvg(FedAvg):
                             os.remove(data_path)
                         if original_data is not None:
                             if data_type == "image":
+                                print("try reconstructing")
                                 evaluate_reconstruction(original_data, reconstructed_data)
                             else:
                                 evaluate_reconstruction_numerical(original_data, reconstructed_data)
