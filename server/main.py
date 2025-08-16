@@ -8,10 +8,10 @@ import numpy as np
 # Import from the new server package and other modules
 from server.helpers import load_config, set_parameters, test_and_log_misclassifications, safe_metrics_aggregation
 from server.strategy import SecureFedAvg
-from model import CastingCNN, SensorMLP
+from model import SimpleNN, SensorMLP, CastingCNN
 
 # Import both data loaders
-from utils_data.casting_data_util import load_data as load_casting_data
+from utils_data.casting_data_util import load_data as load_casting_data, get_client_data as get_casting_client_data
 from utils_data.sensor_data_util import load_sensor_data, load_and_preprocess_data
 from attacks.data_poisoning import PoisonedDataset
 from attacks.numerical_attacks import PoisonedSensorDataset
@@ -31,13 +31,19 @@ def main():
             data_config["img_size"]
         )
         testloader = DataLoader(testset, batch_size=32)
-        server_holdout = Subset(trainset, list(range(min(200, len(trainset)))))
+        
+        # Create a dedicated holdout set to avoid indexing errors
+        shuffled_indices = torch.randperm(len(trainset)).tolist()
+        verification_indices = shuffled_indices[:200]
+        server_holdout = Subset(trainset, verification_indices)
         server_holdout_loader = DataLoader(server_holdout, batch_size=32)
         
     elif data_type == "sensor":
         print("Server loading SENSOR dataset...")
         trainset, testset = load_sensor_data(data_config["path"])
         testloader = DataLoader(testset, batch_size=32)
+        
+        # For sensor data, create a holdout from the train set
         server_holdout = Subset(trainset, list(range(min(100, len(trainset)))))
         server_holdout_loader = DataLoader(server_holdout, batch_size=32)
     else:
@@ -84,7 +90,7 @@ def main():
                 with open("backdoor_misclassifications.log", "a") as f:
                     f.write(f"--- MISCLASSIFICATIONS FOR ROUND {server_round} ---\n")
 
-                _, backdoor_asr = test_and_log_misclassifications(model, backdoor_loader, True, target_label, is_image=(data_type=="image"), class_names=data_config.get("class_names", []))
+                _, backdoor_asr = test_and_log_misclassifications(model, backdoor_loader, True, target_label, is_image=(data_type=="casting"), class_names=data_config.get("class_names", []))
             
             print(f"Server-side evaluation round {server_round} complete.")
             return loss, {"accuracy": accuracy, "backdoor_asr": backdoor_asr}

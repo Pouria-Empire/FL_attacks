@@ -29,7 +29,7 @@ class SecureFedAvg(FedAvg):
         self.global_parameters = None
         self.gradient_history = {}
         self.cid_to_logical_id = {}
-        
+
         if self.mitigation_config.get("enable", False) and self.mitigation_config.get("defense_type") == "mydefense":
             data_type = self.config.get("data", {}).get("type", "image")
             if data_type == "image":
@@ -66,11 +66,11 @@ class SecureFedAvg(FedAvg):
             for client in sampled_clients:
                 logical_id = self.cid_to_logical_id.get(client.cid)
                 client_config = {}
-                if logical_id and self.defense_agent.trigger_chaotic_encryption_for_client.get(logical_id, False):
+                if logical_id and self.defense_agent.trigger_chaotic_obfuscation_for_client.get(logical_id, False):
                     print(f"\n[Mitigation] Instructing Client {logical_id} to apply Chaotic Obfuscation.")
                     client_config["apply_chaotic_obfuscation"] = True
                     client_config.update(self.mitigation_config.get("mydefense_params", {}))
-                    self.defense_agent.trigger_chaotic_encryption_for_client[logical_id] = False
+                    self.defense_agent.trigger_chaotic_obfuscation_for_client[logical_id] = False
                 client_configs.append((client, fl.common.FitIns(parameters, client_config)))
             return client_configs
 
@@ -96,73 +96,38 @@ class SecureFedAvg(FedAvg):
             if "logical_client_id" in fit_res.metrics:
                 self.cid_to_logical_id[client_proxy.cid] = fit_res.metrics["logical_client_id"]
         
-        # --- RECONSTRUCTION BEFORE DECRYPTION ---
-        gi_params = self.attack_config.get("gradient_inversion", {})
-        if gi_params.get("enable", False):
-            target_client_id = gi_params.get("target_client", 1)
-            for client_proxy, fit_res in results:
-                logical_id = self.cid_to_logical_id.get(client_proxy.cid)
-                if logical_id == target_client_id and fit_res.metrics.get("attack") == "gradient_inversion":
-                    print(f"\n[Attack] Intercepted defended update from target client {target_client_id}.")
-                    raw_gradients = parameters_to_ndarrays(fit_res.parameters)
-                    data_type = fit_res.metrics.get("data_type", "image")
-                    reconstruction_result = self._reconstruct_data([raw_gradients], gi_params, data_type)
-                    
-                    if reconstruction_result is not None:
-                        print("reconstruction is not null")
-                        reconstructed_data, predicted_labels = reconstruction_result if isinstance(reconstruction_result, tuple) else (reconstruction_result, None)
-                        original_data, original_labels = None, None
-                        data_path = f"client_data/client_{target_client_id}_{data_type}_data.pkl"
-                        if os.path.exists(data_path):
-                            with open(data_path, "rb") as f: saved_data = pickle.load(f)
-                            original_data, original_labels = saved_data['data'], saved_data['label']
-                            os.remove(data_path)
-                        if original_data is not None:
-                            if data_type == "image":
-                                print("try reconstructing")
-                                evaluate_reconstruction(original_data, reconstructed_data)
-                            else:
-                                evaluate_reconstruction_numerical(original_data, reconstructed_data)
-                        self._save_reconstruction(reconstructed_data, predicted_labels, target_client_id, server_round, data_type, original_data, original_labels)
-                    break 
-
-        # --- DECRYPTION / DEOBFUSCATION ---
-        processed_results = []
-        if self.mitigation_config.get("enable", False):
-            defense_type = self.mitigation_config.get("defense_type")
-            for client_proxy, fit_res in results:
-                raw_params = parameters_to_ndarrays(fit_res.parameters)
-                if defense_type == "encryption" and len(raw_params) == 1 and raw_params[0].dtype == np.uint8:
-                    print(f"[Mitigation] Decrypting update from client {client_proxy.cid}.")
-                    try:
-                        decrypted_params = decrypt_params(raw_params[0].tobytes())
-                        fit_res.parameters = ndarrays_to_parameters(decrypted_params)
-                    except Exception as e:
-                        print(f"Could not decrypt update from {client_proxy.cid}: {e}")
-                
-                elif self.defense_agent and fit_res.metrics.get("was_chaotically_obfuscated"):
-                    print(f"[Mitigation] De-obfuscating update from client {client_proxy.cid}.")
-                    chaos_params = self.mitigation_config.get("mydefense_params", {})
-                    deobfuscated_params = chaotic_map_deobfuscate(
-                        raw_params, 
-                        key=chaos_params.get("chaos_key", 3.99),
-                        seed=chaos_params.get("chaos_seed", 0.5)
-                    )
-                    fit_res.parameters = ndarrays_to_parameters(deobfuscated_params)
-
-                processed_results.append((client_proxy, fit_res))
-        else:
-            processed_results = results
-        
-        # --- AGGREGATION LOGIC ---
         if self.defense_agent:
-            aggregated_params, aggregated_metrics = self.defense_agent_aggregation(server_round, processed_results, failures)
+            aggregated_params, aggregated_metrics = self.defense_agent_aggregation(server_round, results, failures)
         else:
+            processed_results = self.process_results(results)
             aggregated_params, aggregated_metrics = self.standard_aggregation(server_round, processed_results, failures)
 
         if aggregated_params:
             self.global_parameters = fl.common.parameters_to_ndarrays(aggregated_params)
         return aggregated_params, aggregated_metrics
+
+    def process_results(self, results: List[Tuple[Any, Any]]):
+        """Helper function to decrypt or de-obfuscate results."""
+        processed_results = []
+        defense_type = self.mitigation_config.get("defense_type")
+        for client_proxy, fit_res in results:
+            raw_params = parameters_to_ndarrays(fit_res.parameters)
+            if defense_type == "encryption" and len(raw_params) == 1 and raw_params[0].dtype == np.uint8:
+                try:
+                    decrypted_params = decrypt_params(raw_params[0].tobytes())
+                    fit_res.parameters = ndarrays_to_parameters(decrypted_params)
+                except Exception as e:
+                    print(f"Could not decrypt update from {client_proxy.cid}: {e}")
+            elif fit_res.metrics.get("was_chaotically_obfuscated"):
+                chaos_params = self.mitigation_config.get("mydefense_params", {})
+                deobfuscated_params = chaotic_map_deobfuscate(
+                    raw_params, 
+                    key=chaos_params.get("chaos_key"), 
+                    seed=chaos_params.get("chaos_seed")
+                )
+                fit_res.parameters = ndarrays_to_parameters(deobfuscated_params)
+            processed_results.append((client_proxy, fit_res))
+        return processed_results
     
     def defense_agent_aggregation(self, server_round, results, failures):
         print("\n--- MyDefense Agent Analyzing Round ---")
@@ -170,9 +135,44 @@ class SecureFedAvg(FedAvg):
         for client_proxy, fit_res in results:
             client_id = self.cid_to_logical_id.get(client_proxy.cid)
             if client_id is None: continue
-            client_update_params = fl.common.parameters_to_ndarrays(fit_res.parameters)
-            if self.defense_agent.decide_and_defend(client_id, self.global_parameters, client_update_params, None, None):
+            
+            raw_update_params = parameters_to_ndarrays(fit_res.parameters)
+            clean_update_params = raw_update_params
+            
+            if fit_res.metrics.get("was_chaotically_obfuscated"):
+                print(f"[Mitigation] De-obfuscating update from client {client_proxy.cid} for utility analysis.")
+                chaos_params = self.mitigation_config.get("mydefense_params", {})
+                clean_update_params = chaotic_map_deobfuscate(
+                    raw_update_params, key=chaos_params.get("chaos_key"), seed=chaos_params.get("chaos_seed")
+                )
+
+            reconstruction_result, original_data = None, None
+            
+            if (self.attack_config.get("gradient_inversion", {}).get("enable", False) and 
+                client_id == self.attack_config["gradient_inversion"]["target_client"] and
+                fit_res.metrics.get("attack") == "gradient_inversion"):
+                
+                data_type = fit_res.metrics.get("data_type", "image")
+                print(f"-> Analyzing GI target: Client {client_id} ({data_type} data)")
+                
+                # Run reconstruction on the RAW, potentially obfuscated data
+                reconstruction_result = self._reconstruct_data([raw_update_params], self.attack_config["gradient_inversion"], data_type)
+                
+                data_path = f"client_data/client_{client_id}_{data_type}_data.pkl"
+                if os.path.exists(data_path):
+                    with open(data_path, "rb") as f: saved_data = pickle.load(f)
+                    original_data, original_labels = saved_data['data'], saved_data['label']
+                    os.remove(data_path)
+                
+                if reconstruction_result is not None and original_data is not None:
+                    reconstructed_images, predicted_labels = reconstruction_result
+                    evaluate_reconstruction(original_data, reconstructed_images)
+                    self._save_reconstruction(reconstructed_images, predicted_labels, client_id, server_round, data_type, original_data, original_labels)
+
+            if self.defense_agent.decide_and_defend(client_id, self.global_parameters, clean_update_params, reconstruction_result, original_data):
+                fit_res.parameters = ndarrays_to_parameters(clean_update_params)
                 accepted_results.append((client_proxy, fit_res))
+        
         if not accepted_results:
             print("--- MyDefense Result: All updates rejected. ---")
             return fl.common.ndarrays_to_parameters(self.global_parameters), {}
