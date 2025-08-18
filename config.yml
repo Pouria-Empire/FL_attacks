@@ -80,7 +80,7 @@ mitigations:
   
   mydefense_params:
     utility_threshold: -10.0  # Allow for small, noisy decreases in accuracy
-    leakage_threshold: 0.20   # If SSIM-based MyFunc score > 0.6, trigger encryption
+    leakage_threshold: 0.10   # If SSIM-based MyFunc score > 0.6, trigger encryption
     alpha: 0.0
     beta: 1.0                 # Weight for image leakage (set to 1 as it's the only component)
     gamma: 0.0
