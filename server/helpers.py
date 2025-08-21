@@ -9,8 +9,8 @@ import os
 from skimage.metrics import peak_signal_noise_ratio as psnr, structural_similarity as ssim, mean_squared_error as mse
 from scipy.spatial import distance
 
-# Import project-specific models and utils
-from model import CastingCNN, SensorMLP
+# Import project-specific models
+from model import CastingCNN, SensorMLP, CifarCNN
 
 def load_config() -> Dict[str, Any]:
     """Load the YAML configuration file."""
@@ -27,46 +27,22 @@ def get_parameters(model: torch.nn.Module) -> List[np.ndarray]:
     """Gets the parameters of a PyTorch model."""
     return [val.cpu().numpy() for _, val in model.state_dict().items()]
 
-def test(model: torch.nn.Module, test_loader: DataLoader, is_image: bool) -> Tuple[float, float]:
-    """Generic test function that handles both image and sensor data."""
-    model.eval()
-    correct, total, total_loss = 0, 0, 0.0
-    # --- THE FIX: Use BCEWithLogitsLoss for the binary image classification task ---
-    criterion = torch.nn.BCEWithLogitsLoss() if is_image else torch.nn.CrossEntropyLoss()
-
-    with torch.no_grad():
-        for data, labels in test_loader:
-            outputs = model(data)
-            total += labels.size(0)
-
-            if is_image:
-                # Reshape labels for BCEWithLogitsLoss
-                labels = labels.float().view(-1, 1)
-                total_loss += criterion(outputs, labels).item() * data.size(0)
-                predicted = torch.sigmoid(outputs) > 0.5
-                correct += (predicted == labels).sum().item()
-            else: # Sensor data
-                total_loss += criterion(outputs, labels).item() * data.size(0)
-                _, predicted = torch.max(outputs.data, 1)
-                correct += (predicted == labels).sum().item()
-
-    return total_loss / total if total > 0 else 0, correct / total if total > 0 else 0
-
-
 def test_and_log_misclassifications(
     model: torch.nn.Module,
     test_loader: DataLoader,
     is_backdoor_test: bool,
     target_label: int,
-    is_image: bool,
+    data_type: str,
     class_names: List[str]
 ) -> Tuple[float, float]:
     """
-    Tests the model, handles both data types, and logs backdoor misclassifications.
+    Tests the model, handles all data types, and logs backdoor misclassifications.
     """
     model.eval()
     correct, total, total_loss = 0, 0, 0.0
-    criterion = torch.nn.BCEWithLogitsLoss() if is_image else torch.nn.CrossEntropyLoss()
+    
+    is_binary_image = (data_type == "casting")
+    criterion = torch.nn.BCEWithLogitsLoss() if is_binary_image else torch.nn.CrossEntropyLoss()
     log_file = "backdoor_misclassifications.log"
     
     successful_flips = 0
@@ -77,42 +53,29 @@ def test_and_log_misclassifications(
             outputs = model(data)
             total += labels.size(0)
 
-            if is_image:
-                labels = labels.float().view(-1, 1)
-                total_loss += criterion(outputs, labels).item() * data.size(0)
+            if is_binary_image:
+                labels_for_loss = labels.float().view(-1, 1)
+                total_loss += criterion(outputs, labels_for_loss).item() * data.size(0)
                 predicted = torch.sigmoid(outputs) > 0.5
-                correct += (predicted == labels).sum().item()
-                
-                if is_backdoor_test:
-                    for i in range(len(predicted)):
-                        true_label_idx = int(labels[i].item())
-                        predicted_label_idx = int(predicted[i].item())
-                        
-                        if true_label_idx != target_label:
-                            total_non_target += 1
-                            if predicted_label_idx == target_label:
-                                successful_flips += 1
-                                with open(log_file, "a") as f:
-                                    f.write(f"SUCCESSFUL MISCLASSIFICATION (Image):\n")
-                                    f.write(f"  - Original Label: {class_names[true_label_idx]}\n")
-                                    f.write(f"  - Model Predicted: {class_names[target_label]} (due to trigger)\n\n")
-            else: # Numerical data
+                correct += (predicted == labels_for_loss).sum().item()
+            else: # Sensor or CIFAR-10
                 total_loss += criterion(outputs, labels).item() * data.size(0)
                 _, predicted = torch.max(outputs.data, 1)
                 correct += (predicted == labels).sum().item()
-                
-                if is_backdoor_test:
-                    for i in range(len(predicted)):
-                        true_label = labels[i].item()
-                        predicted_label = predicted[i].item()
-                        if true_label != target_label:
-                            total_non_target += 1
-                            if predicted_label == target_label:
-                                successful_flips += 1
-                                with open(log_file, "a") as f:
-                                    f.write(f"SUCCESSFUL MISCLASSIFICATION (Sensor):\n")
-                                    f.write(f"  - Original Label: {true_label}\n")
-                                    f.write(f"  - Model Predicted: {target_label} (due to trigger)\n\n")
+            
+            if is_backdoor_test:
+                for i in range(len(predicted)):
+                    true_label = labels[i].item()
+                    predicted_label = predicted[i].item()
+                    
+                    if true_label != target_label:
+                        total_non_target += 1
+                        if predicted_label == target_label:
+                            successful_flips += 1
+                            with open(log_file, "a") as f:
+                                f.write(f"SUCCESSFUL MISCLASSIFICATION ({data_type.upper()}):\n")
+                                f.write(f"  - Original Label: {class_names[true_label] if class_names else true_label}\n")
+                                f.write(f"  - Model Predicted: {class_names[target_label] if class_names else target_label} (due to trigger)\n\n")
     
     if is_backdoor_test:
         accuracy = successful_flips / total_non_target if total_non_target > 0 else 0
@@ -134,7 +97,6 @@ def safe_metrics_aggregation(metrics: List[Tuple[int, Dict[str, float]]]) -> Dic
     if "accuracy" in aggregated:
         print(f"  Normal Accuracy: {aggregated['accuracy']*100:.2f}%")
     
-    # Always print ASR if the key exists, even if it's zero
     if "backdoor_asr" in aggregated:
         print(f"  Attack Success Rate (ASR): {aggregated['backdoor_asr']*100:.2f}%")
         

@@ -1,0 +1,11 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "conda-activate-fedlearn",
+            "type": "shell",
+            "command": "conda activate fedlearn &&",
+            "problemMatcher": []
+        }
+    ]
+}

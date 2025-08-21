@@ -8,9 +8,9 @@ import torch
 import pickle
 from collections import OrderedDict
 
-# Import from other refactored server files and project modules
-from model import SimpleNN, SensorMLP, CastingCNN
-from server.helpers import get_parameters, set_parameters, test, evaluate_reconstruction, evaluate_reconstruction_numerical
+# Import all project modules
+from model import SensorMLP, CastingCNN, CifarCNN
+from server.helpers import get_parameters, evaluate_reconstruction, evaluate_reconstruction_numerical
 from server.reconstruction import reconstruct_data, save_reconstruction
 from defense.mydefense import MyDefenseAgent
 from crypto_utils import encrypt_params, decrypt_params, chaotic_map_deobfuscate
@@ -29,11 +29,14 @@ class SecureFedAvg(FedAvg):
         self.global_parameters = None
         self.gradient_history = {}
         self.cid_to_logical_id = {}
-
+        
         if self.mitigation_config.get("enable", False) and self.mitigation_config.get("defense_type") == "mydefense":
             data_type = self.config.get("data", {}).get("type", "image")
-            if data_type == "image":
+            if data_type == "casting":
                 model_class = CastingCNN
+                model_args = {"num_classes": self.config["data"]["num_classes"]}
+            elif data_type == "cifar10":
+                model_class = CifarCNN
                 model_args = {"num_classes": self.config["data"]["num_classes"]}
             else: # sensor
                 X, y, _ = load_and_preprocess_data(self.config["data"]["path"])
@@ -46,13 +49,15 @@ class SecureFedAvg(FedAvg):
 
     def initialize_parameters(self, client_manager: fl.server.client_manager.ClientManager) -> Optional[Parameters]:
         data_type = self.config.get("data", {}).get("type", "image")
-        if data_type == "image":
+        if data_type == "casting":
             model = CastingCNN(num_classes=self.config["data"]["num_classes"])
+        elif data_type == "cifar10":
+            model = CifarCNN(num_classes=self.config["data"]["num_classes"])
         elif data_type == "sensor":
             X, y, _ = load_and_preprocess_data(self.config["data"]["path"])
             model = SensorMLP(input_features=X.shape[1], num_classes=len(np.unique(y)))
-        else: # Fallback for old NIH dataset
-             model = SimpleNN(num_classes=15)
+        else:
+            raise ValueError(f"Unknown data type for initialization: {data_type}")
             
         self.global_parameters = get_parameters(model)
         return fl.common.ndarrays_to_parameters(self.global_parameters)
@@ -107,7 +112,6 @@ class SecureFedAvg(FedAvg):
         return aggregated_params, aggregated_metrics
 
     def process_results(self, results: List[Tuple[Any, Any]]):
-        """Helper function to decrypt or de-obfuscate results."""
         processed_results = []
         defense_type = self.mitigation_config.get("defense_type")
         for client_proxy, fit_res in results:
@@ -120,11 +124,7 @@ class SecureFedAvg(FedAvg):
                     print(f"Could not decrypt update from {client_proxy.cid}: {e}")
             elif fit_res.metrics.get("was_chaotically_obfuscated"):
                 chaos_params = self.mitigation_config.get("mydefense_params", {})
-                deobfuscated_params = chaotic_map_deobfuscate(
-                    raw_params, 
-                    key=chaos_params.get("chaos_key"), 
-                    seed=chaos_params.get("chaos_seed")
-                )
+                deobfuscated_params = chaotic_map_deobfuscate(raw_params, key=chaos_params.get("chaos_key"), seed=chaos_params.get("chaos_seed"))
                 fit_res.parameters = ndarrays_to_parameters(deobfuscated_params)
             processed_results.append((client_proxy, fit_res))
         return processed_results
@@ -155,7 +155,6 @@ class SecureFedAvg(FedAvg):
                 data_type = fit_res.metrics.get("data_type", "image")
                 print(f"-> Analyzing GI target: Client {client_id} ({data_type} data)")
                 
-                # Run reconstruction on the RAW, potentially obfuscated data
                 reconstruction_result = self._reconstruct_data([raw_update_params], self.attack_config["gradient_inversion"], data_type)
                 
                 data_path = f"client_data/client_{client_id}_{data_type}_data.pkl"
@@ -175,11 +174,48 @@ class SecureFedAvg(FedAvg):
         
         if not accepted_results:
             print("--- MyDefense Result: All updates rejected. ---")
-            return fl.common.ndarrays_to_parameters(self.global_parameters), {}
-        print(f"--- MyDefense Result: Aggregating {len(accepted_results)} of {len(results)} updates. ---")
-        return super().aggregate_fit(server_round, accepted_results, failures)
+            aggregated_params, aggregated_metrics = fl.common.ndarrays_to_parameters(self.global_parameters), {}
+        else:
+            print(f"--- MyDefense Result: Aggregating {len(accepted_results)} of {len(results)} updates. ---")
+            aggregated_params, aggregated_metrics = super().aggregate_fit(server_round, accepted_results, failures)
+        
+        return aggregated_params, aggregated_metrics
 
     def standard_aggregation(self, server_round, results, failures):
+        gi_params = self.attack_config.get("gradient_inversion", {})
+        if gi_params.get("enable", False):
+            target_client_id = gi_params.get("target_client", 1)
+            target_fit_res, honest_clients_results = None, []
+            for client_proxy, fit_res in results:
+                logical_id = self.cid_to_logical_id.get(client_proxy.cid)
+                if logical_id == target_client_id and fit_res.metrics.get("attack") == "gradient_inversion":
+                    target_fit_res = fit_res
+                else:
+                    honest_clients_results.append((client_proxy, fit_res))
+            if target_fit_res:
+                try:
+                    gradients = parameters_to_ndarrays(target_fit_res.parameters)
+                    data_type = target_fit_res.metrics.get("data_type", "image")
+                    reconstruction_result = self._reconstruct_data([gradients], gi_params, data_type)
+                    if reconstruction_result is not None:
+                        reconstructed_data, predicted_labels = reconstruction_result if isinstance(reconstruction_result, tuple) else (reconstruction_result, None)
+                        original_data, original_labels = None, None
+                        data_path = f"client_data/client_{target_client_id}_{data_type}_data.pkl"
+                        if os.path.exists(data_path):
+                            with open(data_path, "rb") as f: saved_data = pickle.load(f)
+                            original_data, original_labels = saved_data['data'], saved_data['label']
+                            os.remove(data_path)
+                        if original_data is not None:
+                            if data_type == "image":
+                                evaluate_reconstruction(original_data, reconstructed_data)
+                            else:
+                                evaluate_reconstruction_numerical(original_data, reconstructed_data)
+                        self._save_reconstruction(reconstructed_data, predicted_labels, target_client_id, server_round, data_type, original_data, original_labels)
+                except Exception as e:
+                    print(f"[Attack Failed] Gradient Inversion error: {str(e)}")
+            if not honest_clients_results: return None, {}
+            return super().aggregate_fit(server_round, honest_clients_results, failures)
+        
         if self.mitigation_config.get("enable", False) and self.mitigation_config.get("defense_type") == "median":
             if not results: return None, {}
             all_params = [parameters_to_ndarrays(fit_res.parameters) for _, fit_res in results]

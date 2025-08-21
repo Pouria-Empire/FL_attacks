@@ -1,3 +1,4 @@
+
 import numpy as np
 import torch
 from typing import List, Dict, Tuple, Optional
@@ -7,7 +8,8 @@ from torch.utils.data import DataLoader
 from skimage.metrics import structural_similarity as ssim
 
 # Import all model types to be used by the agent
-from model import SimpleNN, SensorMLP, CastingCNN
+from model import SensorMLP, CastingCNN
+
 
 from crypto_utils import chaotic_map_obfuscate
 
@@ -21,28 +23,41 @@ def set_parameters(model: torch.nn.Module, parameters: List[np.ndarray]):
     state_dict = {k: torch.tensor(v) for k, v in params_dict}
     model.load_state_dict(state_dict, strict=True)
 
-def test(model: torch.nn.Module, test_loader: DataLoader, is_image: bool) -> Tuple[float, float]:
-    """Generic test function that handles both image and sensor data."""
+def test(model: torch.nn.Module, test_loader: DataLoader, data_type: str) -> Tuple[float, float]:
+    """Generic test function that handles all data types."""
     model.eval()
     correct, total, total_loss = 0, 0, 0.0
-    criterion = torch.nn.BCEWithLogitsLoss() if is_image else torch.nn.CrossEntropyLoss()
+    
+    is_binary_image = (data_type == "image")
+    criterion = torch.nn.BCEWithLogitsLoss() if is_binary_image else torch.nn.CrossEntropyLoss()
     
     with torch.no_grad():
-        for data, labels in test_loader:
-            outputs = model(data)
-            total += labels.size(0)
-            
-            if is_image:
-                labels = labels.float().view(-1, 1)
-                total_loss += criterion(outputs, labels).item() * data.size(0)
-                predicted = torch.sigmoid(outputs) > 0.5
-                correct += (predicted == labels).sum().item()
-            else: # Sensor data
-                total_loss += criterion(outputs, labels).item() * data.size(0)
+        if data_type == "multimodal":
+            for images, sensors, labels in test_loader:
+                outputs = model(images, sensors)
+                total_loss += criterion(outputs, labels).item() * images.size(0)
                 _, predicted = torch.max(outputs.data, 1)
+                total += labels.size(0)
                 correct += (predicted == labels).sum().item()
+        else: # For single-data-type clients
+            for data, labels in test_loader:
+                outputs = model(data)
+                total += labels.size(0)
+                
+                # Reshape labels for binary classification loss ---
+                if is_binary_image:
+                    labels = labels.float().view(-1, 1) # Reshape [32] -> [32, 1]
+                    predicted = torch.sigmoid(outputs) > 0.5
+                    correct += (predicted == labels).sum().item()
+                else: # Sensor data
+                    _, predicted = torch.max(outputs.data, 1)
+                    correct += (predicted == labels).sum().item()
+                
+                total_loss += criterion(outputs, labels).item() * data.size(0)
+                # --- END OF FIX ---
 
     return total_loss / total if total > 0 else 0, correct / total if total > 0 else 0
+
 
 # --- 1. Client Utility Evaluation ---
 def calculate_client_utility(
@@ -51,21 +66,26 @@ def calculate_client_utility(
     verification_loader: DataLoader,
     model_class, 
     model_args: dict,
-    is_image: bool
+    data_type: str
 ) -> float:
     """Calculates the utility of a client's update by measuring the change in accuracy."""
     model = model_class(**model_args)
     
     set_parameters(model, global_model_params)
-    _, base_accuracy = test(model, verification_loader, is_image)
+    _, base_accuracy = test(model, verification_loader, data_type)
 
     set_parameters(model, client_update_params)
-    _, new_accuracy = test(model, verification_loader, is_image)
+    _, new_accuracy = test(model, verification_loader, data_type)
 
     return new_accuracy - base_accuracy
 
 # --- 2. Data Leakage Evaluation (MyFunc) ---
-def my_func_image_leakage(original_image, reconstructed_image, alpha, beta, gamma) -> float:
+def my_func_image_leakage(
+    original_image: np.ndarray,
+    reconstructed_image: np.ndarray,
+    alpha: float, beta: float, gamma: float
+) -> float:
+    """Calculates the MyFunc score for data leakage based on image similarity (SSIM)."""
     perceptual_similarity = ssim(
         original_image.squeeze(),
         reconstructed_image.squeeze(),
@@ -73,21 +93,24 @@ def my_func_image_leakage(original_image, reconstructed_image, alpha, beta, gamm
     )
     return beta * perceptual_similarity
 
-
-def my_func_numerical_leakage(original_data, reconstructed_data, alpha, beta, gamma) -> float:
-    mse = np.mean((original_data - reconstructed_data) ** 2)
+def my_func_numerical_leakage(
+    original_data: np.ndarray,
+    reconstructed_data: np.ndarray,
+    alpha: float, beta: float, gamma: float
+) -> float:
+    """Calculates the MyFunc score for data leakage based on numerical similarity (MSE)."""
+    mse = np.mean((original_data - reconstructed_data)**2)
     quantitative_similarity = 1 / (1 + mse)
     return gamma * quantitative_similarity
 
-
-# --- 3. The MyDefense Agent ---
+# --- 3. The MyDefense Agent (Simplified) ---
 class MyDefenseAgent:
-    def __init__(self, config: dict, server_holdout_loader: DataLoader, model_class, model_args: dict):
+    def __init__(self, config: dict, verification_loader: DataLoader, model_class, model_args: dict):
         self.config = config
         self.params = config.get("mitigations", {}).get("mydefense_params", {})
         self.utility_threshold = self.params.get("utility_threshold", 0.0)
         self.leakage_threshold = self.params.get("leakage_threshold", 0.8)
-        self.server_holdout_loader = server_holdout_loader
+        self.verification_loader = verification_loader
         self.trigger_chaotic_obfuscation_for_client = {}
         self.model_class = model_class
         self.model_args = model_args
@@ -105,8 +128,8 @@ class MyDefenseAgent:
         
         # --- Criterion 1: Client Contribution Utility (based on CLEAN params) ---
         client_utility = calculate_client_utility(
-            global_model_params, clean_update_params, self.server_holdout_loader,
-            self.model_class, self.model_args, self.is_image
+            global_model_params, clean_update_params, self.verification_loader,
+            self.model_class, self.model_args, self.data_type
         )
         print(f"  - Client {client_id} Contribution Utility Score: {client_utility:.4f}")
         if client_utility < self.utility_threshold:
