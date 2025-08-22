@@ -1,10 +1,10 @@
 server:
   address: "0.0.0.0:8080"
   rounds: 20
-  min_clients: 2
+  min_clients: 1
 
 clients:
-  total: 2
+  total: 1
   batch_size: 64     # Batch size for all clients
   local_epochs: 5   # Clients train for 1 full epoch on their data
   learning_rate: 0.001

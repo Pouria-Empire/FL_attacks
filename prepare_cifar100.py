@@ -1,34 +1,36 @@
 import os
-from PIL import Image
-from tqdm import tqdm
 import torchvision
 import torchvision.transforms as transforms
+from tqdm import tqdm
+import random
 
-# Transform: CIFAR100 -> grayscale 128x128
-transform = transforms.Compose([
-    transforms.Grayscale(num_output_channels=1),
-    transforms.Resize((128, 128))
-])
+def create_cifar10_subset(root_dir="./data/cifar10", out_dir="./cifar10_subset", samples_per_class=500):
+    """
+    Creates a smaller, balanced subset of the CIFAR-10 dataset in an ImageFolder structure.
+    """
+    print(f"Creating a balanced CIFAR-10 subset with {samples_per_class} samples per class...")
+    
+    # Download the full dataset
+    trainset = torchvision.datasets.CIFAR10(root=root_dir, train=True, download=True)
+    testset = torchvision.datasets.CIFAR10(root=root_dir, train=False, download=True)
 
-def save_dataset(dataset, classes, split, out_dir="./data/cifar10_dataset"):
-    base_dir = os.path.join(out_dir, split)
-    os.makedirs(base_dir, exist_ok=True)
+    # Create directories
+    for split in ['train', 'test']:
+        for class_name in trainset.classes:
+            os.makedirs(os.path.join(out_dir, split, class_name), exist_ok=True)
 
-    for class_name in classes:
-        os.makedirs(os.path.join(base_dir, class_name), exist_ok=True)
-
-    print(f"Saving {split} dataset...")
-    for idx, (img, label) in enumerate(tqdm(dataset)):
-        class_name = classes[label]
-        img_path = os.path.join(base_dir, class_name, f"{idx}.png")
-        img.save(img_path)
+    # --- Process and save a balanced subset of the training data ---
+    train_class_counts = {c: 0 for c in trainset.classes}
+    for img, label in tqdm(trainset, desc="Processing Train Set"):
+        class_name = trainset.classes[label]
+        if train_class_counts[class_name] < samples_per_class:
+            # Randomly assign to train (80%) or test (20%) split
+            split = 'train' if random.random() < 0.8 else 'test'
+            img_path = os.path.join(out_dir, split, class_name, f"{train_class_counts[class_name]}.png")
+            img.save(img_path)
+            train_class_counts[class_name] += 1
+            
+    print("✅ Balanced CIFAR-10 subset created successfully.")
 
 if __name__ == "__main__":
-    trainset = torchvision.datasets.CIFAR10(root='./data', train=True, download=True, transform=transform)
-    testset = torchvision.datasets.CIFAR10(root='./data', train=False, download=True, transform=transform)
-    classes = trainset.classes
-
-    save_dataset(trainset, classes, "train")
-    save_dataset(testset, classes, "test")
-
-    print("\n✅ CIFAR-100 prepared successfully in ImageFolder format!")
+    create_cifar10_subset()
