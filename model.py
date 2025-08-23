@@ -51,22 +51,55 @@ class SensorMLP(nn.Module):
 # Model for the CIFAR-10 Dataset (Multi-class Color Image Classification)
 # ------------------------------------------------------------------
 class CifarCNN(nn.Module):
-    """A CNN adapted for 32x32x3 CIFAR-10 images."""
+    """
+    A more powerful CNN for 32x32x3 CIFAR-10 images, equivalent to the
+    provided Keras model, with Batch Normalization and Dropout.
+    """
     def __init__(self, num_classes=10):
         super(CifarCNN, self).__init__()
         # Input: (3, 32, 32)
-        self.conv1 = nn.Conv2d(3, 32, 3, padding=1)
-        self.pool = nn.MaxPool2d(2, 2) # 32 -> 16
-        self.conv2 = nn.Conv2d(32, 64, 3, padding=1)
-        # 16 -> 8
-        self.fc1 = nn.Linear(64 * 8 * 8, 128)
+        self.conv_block1 = nn.Sequential(
+            nn.Conv2d(3, 32, kernel_size=3, padding='same'),
+            nn.ReLU(),
+            nn.BatchNorm2d(32),
+            nn.Conv2d(32, 32, kernel_size=3, padding='same'),
+            nn.ReLU(),
+            nn.BatchNorm2d(32),
+            nn.MaxPool2d(kernel_size=2, stride=2), # 32 -> 16
+            nn.Dropout(0.25)
+        )
+        self.conv_block2 = nn.Sequential(
+            nn.Conv2d(32, 64, kernel_size=3, padding='same'),
+            nn.ReLU(),
+            nn.BatchNorm2d(64),
+            nn.Conv2d(64, 64, kernel_size=3, padding='same'),
+            nn.ReLU(),
+            nn.BatchNorm2d(64),
+            nn.MaxPool2d(kernel_size=2, stride=2), # 16 -> 8
+            nn.Dropout(0.25)
+        )
+        self.conv_block3 = nn.Sequential(
+            nn.Conv2d(64, 128, kernel_size=3, padding='same'),
+            nn.ReLU(),
+            nn.BatchNorm2d(128),
+            nn.Conv2d(128, 128, kernel_size=3, padding='same'),
+            nn.ReLU(),
+            nn.BatchNorm2d(128),
+            nn.MaxPool2d(kernel_size=2, stride=2), # 8 -> 4
+            nn.Dropout(0.25)
+        )
+        self.flatten = nn.Flatten()
+        self.fc1 = nn.Linear(128 * 4 * 4, 128) # After 3 pooling layers, 32 -> 16 -> 8 -> 4
+        self.dropout_fc = nn.Dropout(0.25)
         self.fc2 = nn.Linear(128, num_classes)
 
     def forward(self, x):
-        x = self.pool(F.relu(self.conv1(x)))
-        x = self.pool(F.relu(self.conv2(x)))
-        x = x.view(-1, 64 * 8 * 8) # Flatten
+        x = self.conv_block1(x)
+        x = self.conv_block2(x)
+        x = self.conv_block3(x)
+        x = self.flatten(x)
         x = F.relu(self.fc1(x))
+        x = self.dropout_fc(x)
         x = self.fc2(x)
         # Return raw logits for CrossEntropyLoss
         return x

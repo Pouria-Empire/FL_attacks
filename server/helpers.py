@@ -41,7 +41,7 @@ def test_and_log_misclassifications(
     model.eval()
     correct, total, total_loss = 0, 0, 0.0
     
-    is_binary_image = (data_type == "casting")
+    is_binary_image = (data_type == "image" or data_type == "casting")
     criterion = torch.nn.BCEWithLogitsLoss() if is_binary_image else torch.nn.CrossEntropyLoss()
     log_file = "backdoor_misclassifications.log"
     
@@ -111,23 +111,58 @@ def evaluate_reconstruction(original_batch: np.ndarray, recon_batch: np.ndarray)
     """Calculates and prints a comprehensive set of similarity metrics for images."""
     psnr_scores, ssim_scores, mse_scores, cos_sims = [], [], [], []
     noise_batch, ssim_noise_scores = np.random.rand(*original_batch.shape), []
+
+    def to_channel_last(img: np.ndarray) -> np.ndarray:
+        # Convert from (C,H,W) → (H,W,C) if needed
+        if img.ndim == 3 and img.shape[0] in (1, 3):
+            return np.transpose(img, (1, 2, 0))
+        return img
+
     for i in range(original_batch.shape[0]):
-        original_img, recon_img, noise_img = original_batch[i].squeeze(), recon_batch[i].squeeze(), noise_batch[i].squeeze()
+        original_img = to_channel_last(original_batch[i].squeeze())
+        recon_img    = to_channel_last(recon_batch[i].squeeze())
+        noise_img    = to_channel_last(noise_batch[i].squeeze())
+
         data_range = original_img.max() - original_img.min()
+
+        # Debug shape check
+        print(f"[DEBUG] original_img shape: {original_img.shape}, "
+              f"recon_img shape: {recon_img.shape}, "
+              f"noise_img shape: {noise_img.shape}")
+
+        # Safe win_size for SSIM
+        h, w = original_img.shape[:2]
+        ws = min(7, h, w)
+        if ws % 2 == 0:
+            ws = max(1, ws - 1)
+
         psnr_scores.append(psnr(original_img, recon_img, data_range=data_range))
-        ssim_scores.append(ssim(original_img, recon_img, data_range=data_range))
+        ssim_scores.append(ssim(original_img, recon_img,
+                                data_range=data_range,
+                                win_size=ws,
+                                channel_axis=-1 if original_img.ndim == 3 else None))
         mse_scores.append(mse(original_img, recon_img))
         cos_sims.append(1 - distance.cosine(original_img.flatten(), recon_img.flatten()))
-        ssim_noise_scores.append(ssim(original_img, noise_img, data_range=data_range))
-    avg_psnr, avg_ssim, avg_mse, avg_cos_sim = np.mean(psnr_scores), np.mean(ssim_scores), np.mean(mse_scores), np.mean(cos_sims)
+        ssim_noise_scores.append(ssim(original_img, noise_img,
+                                      data_range=data_range,
+                                      win_size=ws,
+                                      channel_axis=-1 if original_img.ndim == 3 else None))
+
+    avg_psnr, avg_ssim, avg_mse, avg_cos_sim = (
+        np.mean(psnr_scores),
+        np.mean(ssim_scores),
+        np.mean(mse_scores),
+        np.mean(cos_sims),
+    )
     avg_ssim_noise = np.mean(ssim_noise_scores)
     rdlv = (avg_ssim - avg_ssim_noise) / (1 - avg_ssim_noise) if (1 - avg_ssim_noise) != 0 else 0
+
     print("\n--- Image Reconstruction Quality Metrics ---")
-    print(f"  MSE (↓ is better):      {avg_mse:.4f}")
-    print(f"  PSNR (↑ is better):     {avg_psnr:.2f} dB")
-    print(f"  SSIM (↑ is better):     {avg_ssim:.4f}")
-    print(f"  Cosine Sim (↑ is better):{avg_cos_sim:.4f}")
-    print(f"  RDLV (↑ is better):     {rdlv:.4f}")
+    print(f"  MSE (↓ is better):       {avg_mse:.4f}")
+    print(f"  PSNR (↑ is better):      {avg_psnr:.2f} dB")
+    print(f"  SSIM (↑ is better):      {avg_ssim:.4f}")
+    print(f"  Cosine Sim (↑ is better): {avg_cos_sim:.4f}")
+    print(f"  RDLV (↑ is better):      {rdlv:.4f}")
     print("------------------------------------------")
 
 def evaluate_reconstruction_numerical(original_data: np.ndarray, recon_data: np.ndarray):

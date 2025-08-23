@@ -15,7 +15,7 @@ def main():
         "--type",
         type=str,
         required=True,
-        choices=['image', 'sensor'],
+        choices=['casting', 'sensor', 'cifar10'],
         help="Type of client to run: 'image' or 'sensor'"
     )
     args = parser.parse_args()
@@ -23,7 +23,7 @@ def main():
     config = load_config()
     client_to_run = None
 
-    if args.type == 'image':
+    if args.type == 'casting' or args.type == 'cifar10':
         from clients.image_client import ImageFlowerClient
         print(f"Starting IMAGE client {args.cid}...")
         client_to_run = ImageFlowerClient(args.cid, config)

@@ -8,7 +8,7 @@ from typing import List, Dict, Optional, Tuple
 from attacks.gradient_inversion import dlg_attack, mdlg_attack
 from attacks.ggl_image_attack import ggl_image_attack
 from attacks.ggl_plus_attack import ggl_group_attack
-from attacks.ggl_multimodal_attack import ggl_multimodal_attack
+from attacks.ggl_cifar_attack import ggl_cifar_attack
 from attacks.numerical_attacks import numerical_dlg_attack
 from utils_data.sensor_data_util import load_and_preprocess_data
 
@@ -39,8 +39,8 @@ def reconstruct_data(
             return dummy_image, dummy_label
         return None
 
-    # --- IMAGE RECONSTRUCTION LOGIC (Casting and CIFAR-10) ---
-    if data_type in ["image", "casting", "cifar10"]:
+    # --- IMAGE RECONSTRUCTION LOGIC (Casting Dataset) ---
+    if data_type == "image" or data_type == "casting":
         gradients = gradients_list[0]
         if attack_type == "ggl":
             return ggl_image_attack(
@@ -64,7 +64,21 @@ def reconstruct_data(
                 iterations=attack_params.get("iterations")
             )
         else:
-            print(f"Image attack type '{attack_type}' is not supported.")
+            print(f"Image attack type '{attack_type}' is not supported for this data type.")
+            return None
+
+    # --- CIFAR-10 RECONSTRUCTION LOGIC ---
+    elif data_type == "cifar10":
+        gradients = gradients_list[0]
+        if attack_type == "ggl":
+            return ggl_cifar_attack(
+                gradients=gradients,
+                lr=attack_params.get("attack_lr"),
+                iterations=attack_params.get("iterations")
+            )
+        # Add DLG for CIFAR-10 here if needed
+        else:
+            print(f"Attack type '{attack_type}' not yet supported for CIFAR-10.")
             return None
 
     # --- NUMERICAL RECONSTRUCTION LOGIC ---
@@ -78,18 +92,6 @@ def reconstruct_data(
             gradients_list[0],
             num_features=num_features,
             num_classes=num_classes,
-            lr=attack_params.get("attack_lr"),
-            iterations=attack_params.get("iterations")
-        )
-
-    # --- MULTI-MODAL RECONSTRUCTION LOGIC ---
-    elif data_type == "multimodal":
-        print("[Attack] Launching multi-modal GGL attack.")
-        data_config = main_config.get("data", {})
-        return ggl_multimodal_attack(
-            gradients_list[0],
-            num_sensor_features=data_config.get("num_sensor_features", 19),
-            num_classes=data_config.get("num_classes", 2),
             lr=attack_params.get("attack_lr"),
             iterations=attack_params.get("iterations")
         )
@@ -109,27 +111,34 @@ def save_reconstruction(
     original_data: Optional[np.ndarray] = None,
     original_labels: Optional[np.ndarray] = None
 ):
-    """Saves the reconstructed data based on its type."""
-    
+    """
+    Saves the reconstructed data, ensuring a correct side-by-side comparison for batches.
+    """
     if data_type in ["image", "casting", "cifar10"]:
         recon_tensor = torch.from_numpy(data)
+        
         if original_data is not None:
             original_tensor = torch.from_numpy(original_data)
             
+            # Ensure batch sizes match before creating the grid
             if original_tensor.shape[0] != recon_tensor.shape[0]:
-                print(f"🔴 WARNING: Mismatch in batch sizes. Saving only reconstructed images.")
+                print(f"🔴 WARNING: Mismatch between original ({original_tensor.shape[0]}) and reconstructed ({recon_tensor.shape[0]}) batch sizes.")
+                # Save only the reconstructed images as a fallback
                 save_path = os.path.join(reconstruction_dir, f"reconstruction_client{client_id}_round{round_num}.png")
                 torchvision.utils.save_image(recon_tensor, save_path, nrow=recon_tensor.shape[0])
                 return
 
+            # Create the vertical grid: original images on top, reconstructed below
             comparison_grid = torch.cat([original_tensor, recon_tensor], dim=0)
             
             save_path = os.path.join(reconstruction_dir, f"comparison_client{client_id}_round{round_num}.png")
+            # `nrow` should be the batch size to create two rows
             torchvision.utils.save_image(comparison_grid, save_path, nrow=original_tensor.size(0))
             print(f"[Attack] Saved image comparison grid to {save_path}")
         else:
+            # If original data isn't available, just save the reconstruction
             save_path = os.path.join(reconstruction_dir, f"reconstruction_client{client_id}_round{round_num}.png")
-            torchvision.utils.save_image(recon_tensor, save_path)
+            torchvision.utils.save_image(recon_tensor, save_path, nrow=data.shape[0])
             print(f"[Attack] Saved reconstructed image to {save_path}")
 
     elif data_type == "sensor" or data_type == "multimodal":

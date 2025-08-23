@@ -1,26 +1,53 @@
 import torch
 from torch.utils.data import Dataset, Subset
 from torchvision import datasets, transforms
-from typing import Tuple, Dict, List
-import os
+from typing import Tuple,List,Dict
 import numpy as np
 
 def load_data(data_path: str, img_size: int) -> Tuple[Dataset, Dataset]:
-    """
-    Downloads and transforms the CIFAR-10 dataset.
-    """
-    transform = transforms.Compose([
+    """Downloads and transforms the CIFAR-10 dataset."""
+    
+    # --- THE FIX: Add data augmentation to the training transform ---
+    train_transform = transforms.Compose([
         transforms.Resize((img_size, img_size)),
+        transforms.RandomHorizontalFlip(), # Equivalent to horizontal_flip=True
+        transforms.RandomAffine(degrees=0, translate=(0.1, 0.1)), # Equivalent to shift ranges
         transforms.ToTensor(),
-        transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]) # For 3-channel color images
+        transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
     ])
     
-    train_dataset = datasets.CIFAR10(root=data_path, train=True, download=False, transform=transform)
-    test_dataset = datasets.CIFAR10(root=data_path, train=False, download=False, transform=transform)
+    # Test transform does not have augmentation
+    test_transform = transforms.Compose([
+        transforms.Resize((img_size, img_size)),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
+    ])
+    # --- END OF FIX ---
     
-    print(f"Loaded CIFAR-10 dataset. Train size: {len(train_dataset)}, Test size: {len(test_dataset)}")
+    # Load full datasets
+    full_train_dataset = datasets.CIFAR10(root=data_path, train=True, download=False, transform=train_transform)
+    full_test_dataset = datasets.CIFAR10(root=data_path, train=False, download=False, transform=test_transform)
+    
+    # Filter to only include 3 classes (e.g., classes 0, 1, 2)
+    train_indices = []
+    test_indices = []
+    
+    # Get indices for training data with classes 0, 1, 2
+    for i, (_, label) in enumerate(full_train_dataset):
+        if label in [0, 1]:  # Only keep first 3 classes
+            train_indices.append(i)
+    
+    # Get indices for test data with classes 0, 1, 2
+    for i, (_, label) in enumerate(full_test_dataset):
+        if label in [0, 1]:  # Only keep first 3 classes
+            test_indices.append(i)
+    
+    # Create subsets with only 3 classes
+    train_dataset = Subset(full_train_dataset, train_indices)
+    test_dataset = Subset(full_test_dataset, test_indices)
     
     return train_dataset, test_dataset
+
 
 def get_client_data(cid: str, total_clients: int, data_path: str, img_size: int) -> Tuple[Subset, Dataset]:
     """
@@ -32,8 +59,10 @@ def get_client_data(cid: str, total_clients: int, data_path: str, img_size: int)
     # --- THE FIX: Create a perfectly IID data split ---
     
     # 1. Group all training data indices by their class label.
-    class_indices: Dict[int, List[int]] = {i: [] for i in range(len(train_dataset.classes))}
-    for i, (_, label) in enumerate(train_dataset):
+    class_indices: Dict[int, List[int]] = {i: [] for i in range(3)}  # Only 3 classes now
+    for i in range(len(train_dataset)):
+        # Get the actual data point from the subset
+        _, label = train_dataset[i]
         class_indices[label].append(i)
 
     client_indices = []

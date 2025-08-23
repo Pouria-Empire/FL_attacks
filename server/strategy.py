@@ -100,12 +100,26 @@ class SecureFedAvg(FedAvg):
         for client_proxy, fit_res in results:
             if "logical_client_id" in fit_res.metrics:
                 self.cid_to_logical_id[client_proxy.cid] = fit_res.metrics["logical_client_id"]
-        
+
         if self.defense_agent:
             aggregated_params, aggregated_metrics = self.defense_agent_aggregation(server_round, results, failures)
         else:
             processed_results = self.process_results(results)
             aggregated_params, aggregated_metrics = self.standard_aggregation(server_round, processed_results, failures)
+        
+        # 🔎 New: collect and log uplink/downlink usage
+        total_up = sum((fit_res.metrics or {}).get("bytes_up", 0) for _, fit_res in results)
+        total_down = sum((fit_res.metrics or {}).get("bytes_down", 0) for _, fit_res in results)
+
+        print(f"[Round {server_round}] Total uplink: {total_up} bytes | Total downlink: {total_down} bytes")
+
+        # Ensure aggregated_metrics is a dict, then attach totals
+        if aggregated_metrics is None:
+            aggregated_metrics = {}
+        aggregated_metrics.update({
+            "total_bytes_up": int(total_up),
+            "total_bytes_down": int(total_down),
+        })
 
         if aggregated_params:
             self.global_parameters = fl.common.parameters_to_ndarrays(aggregated_params)
@@ -152,7 +166,7 @@ class SecureFedAvg(FedAvg):
                 client_id == self.attack_config["gradient_inversion"]["target_client"] and
                 fit_res.metrics.get("attack") == "gradient_inversion"):
                 
-                data_type = fit_res.metrics.get("data_type", "image")
+                data_type = fit_res.metrics.get("data_type", "cifar10")
                 print(f"-> Analyzing GI target: Client {client_id} ({data_type} data)")
                 
                 reconstruction_result = self._reconstruct_data([raw_update_params], self.attack_config["gradient_inversion"], data_type)
@@ -206,7 +220,7 @@ class SecureFedAvg(FedAvg):
                             original_data, original_labels = saved_data['data'], saved_data['label']
                             os.remove(data_path)
                         if original_data is not None:
-                            if data_type == "image":
+                            if data_type == "image" or data_type == "casting" or data_type == "cifar10":
                                 evaluate_reconstruction(original_data, reconstructed_data)
                             else:
                                 evaluate_reconstruction_numerical(original_data, reconstructed_data)
