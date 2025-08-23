@@ -1,155 +1,122 @@
-Of course. Here is a comprehensive `README.md` file that summarizes your project and explains how to set it up, configure the experiments, and run the simulation for both image and sensor datasets.
+A Modular Framework for Simulating Attacks and Defenses in Federated Learning
+Project Overview & Story
+This project is a sophisticated and highly modular simulation framework for exploring the security and privacy landscape of Federated Learning (FL). It is built using Python, PyTorch, and the Flower FL framework.
 
------
+The project began as a simple FL simulation for image classification. Its capabilities were progressively expanded to serve as a robust research tool. The development story followed a logical path of introducing threats and then building countermeasures:
 
-# Federated Learning: Attacks and Defenses Simulation Framework
+Privacy Attacks: We first introduced Gradient Inversion (GI) attacks, where a curious server could reconstruct a client's private training data from its shared updates. This included simple attacks like DLG and advanced, state-of-the-art methods like GGL and GradInversion+.
 
-This project is a modular simulation framework for exploring security and privacy threats in Federated Learning (FL). It includes implementations of various state-of-the-art attacks and a suite of defensive mechanisms, including a custom adaptive defense agent. The framework is built using Flower and PyTorch and is designed to be easily adaptable to different data types, currently supporting both image (casting dataset) and numerical/time-series (sensor) data.
+Integrity Attacks: We then introduced integrity attacks, where malicious clients attempt to corrupt the global model. This includes untargeted Model Poisoning (e.g., scaling attacks) and targeted Data Poisoning (backdoor attacks).
 
-## Features
+Standard Defenses: To counter these threats, we implemented a suite of well-known defenses, including client-side perturbations (Clipping, Differential Privacy) and server-side robust aggregation (Median). We also implemented transport-layer security simulations (AES encryption, chaotic obfuscation).
 
-  * **Multi-Dataset Support**: Easily switch between image and numerical datasets via a single configuration setting.
-  * **Gradient Inversion Attacks**:
-      * `DLG` / `mDLG`: Simple, single-sample reconstruction.
-      * `GGL`: Advanced, GAN-based reconstruction for high-fidelity image results.
-      * `GradInversion+`: State-of-the-art batch reconstruction for images.
-      * `Temporal`: Advanced reconstruction using gradients from multiple rounds.
-  * **Integrity & Privacy Attacks**:
-      * `Model Poisoning`: Malicious clients send corrupted updates to degrade model performance.
-      * `Data Poisoning (Backdoor)`: Malicious clients implant a hidden backdoor into the global model, adapted for both image and numerical data.
-  * **Defense Mechanisms**:
-      * Client-Side: `Differential Privacy`, `Gradient Clipping`, `Gradient Sparsification`, and real `AES Encryption`.
-      * Server-Side: `Robust Aggregation` (Median).
-      * **`MyDefense`**: A custom, adaptive defense agent that evaluates client utility and data leakage to reject malicious updates or trigger countermeasures.
+Adaptive Defense: The core of the project became the MyDefense agent, a custom, adaptive defense mechanism on the server. Unlike standard defenses, this agent analyzes each client update in real-time based on two key criteria: Contribution Utility (is the client helpful?) and Data Leakage (is the client leaking too much information?). Based on this analysis, it can reject harmful updates or trigger countermeasures like chaotic obfuscation for specific clients in subsequent rounds.
 
-## 1\. Setup Instructions
+Generalization: To test the robustness and flexibility of the framework, it was generalized to support multiple data types:
 
-### Step 1: Environment Setup
+Binary Images (Casting Defect Dataset)
 
-It is recommended to use a Conda environment.
+Multi-class Images (CIFAR-10)
 
-```bash
-conda create -n fedlearn python=3.10
-conda activate fedlearn
-```
+Numerical/Time-Series Data (Sensor Dataset)
 
-### Step 2: Install Dependencies
+Multi-Modal Data (a combined Image and Sensor model)
 
-Install all required Python packages.
+The entire framework is controlled by a single, comprehensive config.yml file, allowing for easy configuration of complex attack and defense scenarios.
 
-```bash
-pip install -r requirements.txt
-```
+Core Features
+Multi-Dataset Support: Easily switch between binary images, multi-class images, and numerical sensor data.
 
-*(Your `requirements.txt` should contain: `flwr`, `torch`, `torchvision`, `numpy`, `pyyaml`, `scikit-image`, `scipy`, `pandas`, `matplotlib`, `pycryptodome`, `tqdm`, `scikit-learn`)*
+Gradient Inversion Attacks: DLG, mDLG, GGL (GAN-based), GradInversion+ (batch reconstruction), and specialized versions for multi-modal data.
 
-### Step 3: Prepare Datasets
+Integrity & Privacy Attacks: Model Poisoning and Data Poisoning (Backdoors).
 
-  * **Casting (Image) Dataset**: Place your `kaggle.json` file in the project root and run the preparation script. It will download the data and create a balanced subset for training.
-    ```bash
-    python prepare_casting_dataset.py
-    ```
-  * **Sensor (Numerical) Dataset**: Place your `full_processed_dataset.csv` in the project's root directory or a subdirectory and update the path in `config.yml`.
+Standard Defenses: Clipping, Differential Privacy, Median Aggregation, AES Encryption.
 
-### Step 4: Pre-train the GAN Generator (for GGL Attack)
+MyDefense Agent: A custom, adaptive defense that evaluates client updates for utility and data leakage to make real-time decisions.
 
-The advanced `GGL` attack requires a pre-trained generator for the image dataset.
+Chaotic Obfuscation: A lightweight, reversible defense triggered by the MyDefense agent.
 
-```bash
-# Run this on a GPU environment (like Colab/Kaggle) for best results
-python train_strong_generator.py
-```
+Project Structure
+The project is organized into a modular structure to allow for easy extension and testing.
 
-This will create the `models/strong_casting_generator.pth` file. Make sure this file is present in your local project directory before running GGL attacks.
+.
+├── attacks/              # Contains all attack implementations
+│   ├── ggl_attack.py
+│   ├── gradient_inversion.py
+│   └── ...
+├── clients/              # Contains the client logic for each data type
+│   ├── image_client.py
+│   ├── sensor_client.py
+│   └── multimodal_client.py
+├── data/                 # (Created by scripts) Stores downloaded datasets
+├── defense/              # Contains the custom defense logic
+│   └── mydefense.py
+├── models/               # (Created by scripts) Stores pre-trained GANs
+├── server/               # Contains all server-side logic
+│   ├── main.py           # Main entry point for the server
+│   ├── strategy.py       # The core SecureFedAvg strategy (orchestrator)
+│   ├── helpers.py        # Utility functions (testing, metrics, etc.)
+│   └── reconstruction.py # The attack "switchboard"
+├── utils_data/           # Contains data loading and preparation scripts
+│   ├── casting_data_util.py
+│   ├── cifar_data_util.py
+│   └── ...
+├── config.yml            # The master configuration file for all experiments
+├── run_client.py         # The launcher script for clients
+├── train_cifar_generator.py # Script to pre-train the GAN for CIFAR-10
+└── prepare_cifar10_subset.py # Script to create a smaller dataset for testing
+Module Connectivity & Workflow
+The modules are designed to interact in a specific order, orchestrated by the server/strategy.py file.
 
-## 2\. How to Run a Simulation
+Normal Training Round
+The server (main.py -> strategy.py) initializes a global model based on config.yml.
 
-The simulation requires opening a separate terminal for the server and each client.
+The client launcher (run_client.py) starts a client (e.g., image_client.py).
 
-1.  **Terminal 1: Start the Server**
+The client receives the global model, trains it on its local data (from utils_data/), and sends the full, updated model weights back to the server.
 
-    ```bash
-    python -m server.main
-    ```
+The server (strategy.py) receives the updates and uses FedAvg to average them into a new global model.
 
-2.  **Terminals 2...N: Start the Clients**
-    Use the `run_client.py` launcher script. Specify a unique `--cid` for each client and the `--type` corresponding to your `config.yml`.
+MyDefense Agent Workflow (The Core Logic)
+This is the most complex workflow, demonstrating how all the modules connect.
 
-      * **To run an image client:**
-        ```bash
-        python run_client.py --cid client1 --type image
-        ```
-      * **To run a sensor data client:**
-        ```bash
-        python run_client.py --cid client2 --type sensor
-        ```
+Client-Side:
 
-## 3\. How to Configure Experiments
+A client (e.g., client1, the GI target) is configured to perform an attack. In its fit method, it calculates raw gradients (not a trained model) from a batch of its private data.
 
-All experiments are controlled from the **`config.yml`** file.
+It saves the original data used to generate these gradients to a local .pkl file (e.g., client_data/client_1_image_data.pkl).
 
-### Example A: Baseline Training (Sensor Data)
+It sends the raw gradients and a special metric {"attack": "gradient_inversion"} to the server.
 
-This runs a normal training session with all attacks and defenses disabled.
+Another client (e.g., client2) might be instructed by the server to apply a defense, like chaotic_map_obfuscate (from crypto_utils.py), to its update.
 
-```yaml
-data:
-  type: "sensor"
-  path: "./full_processed_dataset.csv"
+Server-Side (strategy.py):
 
-attacks:
-  gradient_inversion:
-    enable: false
-  model_poisoning:
-    enable: false
-  data_poisoning:
-    enable: false
+Analysis Phase: The aggregate_fit method begins.
 
-mitigations:
-  enable: false
-```
+It first checks for any client that sent the attack metric. For this client, it runs the reconstruction process.
 
-### Example B: Test a GGL Attack (Image Data)
+It calls reconstruct_data (from reconstruction.py) on the raw, potentially defended update to see if the defense was effective.
 
-This enables a `ggl` attack from `client1` on the casting dataset.
+The reconstruction function calls the specific attack (e.g., ggl_attack) from the attacks/ folder. The attack runs and returns a reconstruction_result.
 
-```yaml
-data:
-  type: "image"
-  path: "./casting_dataset"
-  img_size: 128
-  num_classes: 1 
-  class_names: ["def_front", "ok_front"]
+The server loads the original data from the client's .pkl file.
 
-attacks:
-  gradient_inversion:
-    enable: true
-    target_client: 1
-    type: "ggl"
-    attack_lr: 0.01
-    iterations: 10000
-```
+Processing Phase:
 
-### Example C: Test Your Custom `MyDefense` Agent
+The server then loops through all client updates and creates a clean version of each by calling decrypt_params or chaotic_map_deobfuscate (from crypto_utils.py) if needed.
 
-This enables your adaptive defense against a model poisoning attack on the sensor dataset. The server will evaluate each client's utility and reject harmful updates.
+Decision Phase:
 
-```yaml
-data:
-  type: "sensor"
-  path: "./full_processed_dataset.csv"
+The server now calls the MyDefenseAgent's decide_and_defend method (from defense/mydefense.py).
 
-attacks:
-  model_poisoning:
-    enable: true
-    malicious_clients: [2]
-    type: "scaling"
-    scale_factor: -5.0
+It passes both the clean update (for the utility check) and the reconstruction result (from the raw update, for the leakage check).
 
-mitigations:
-  enable: true
-  defense_type: "mydefense"
-  mydefense_params:
-    utility_threshold: -0.005
-    leakage_threshold: 0.95 # High, as we don't expect leakage here
-```
+The decide_and_defend function uses helper functions (from defense/mydefense.py) to calculate the utility and leakage scores and returns a True/False decision.
+
+Aggregation Phase:
+
+The server collects all the clean updates that were accepted by the defense agent and aggregates them using FedAvg.
+
+This cycle of attacking the defended data while aggregating the clean data allows for a comprehensive and realistic simulation of the security dynamics in Federated Learning.
