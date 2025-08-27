@@ -5,10 +5,10 @@ import torchvision
 from typing import List, Dict, Optional, Tuple
 
 # Import all attack functions for all data types
-from attacks.gradient_inversion import dlg_attack, mdlg_attack
+from attacks.gradient_inversion import dlg_attack, idlg_attack, mdlg_attack
 from attacks.ggl_image_attack import ggl_image_attack
 from attacks.ggl_plus_attack import ggl_group_attack
-from attacks.ggl_cifar_attack import ggl_cifar_attack
+from attacks.ggl_cifar_attack import ggl_cifar_attack_strong
 from attacks.numerical_attacks import numerical_dlg_attack
 from utils_data.sensor_data_util import load_and_preprocess_data
 
@@ -71,10 +71,35 @@ def reconstruct_data(
     elif data_type == "cifar10":
         gradients = gradients_list[0]
         if attack_type == "ggl":
-            return ggl_cifar_attack(
+            return ggl_cifar_attack_strong(
+                gradients=gradients,
+                lr=attack_params.get("attack_lr"),
+                iterations=attack_params.get("iterations"),
+                num_restarts=attack_params.get("num_seeds", 2), # Use num_seeds as num_restarts
+                reg_tv=attack_params.get("reg_tv", 1e-4),
+                reg_l2=attack_params.get("reg_l2", 1e-5)
+            )
+        elif attack_type == "dlg":
+            return dlg_attack(
                 gradients=gradients,
                 lr=attack_params.get("attack_lr"),
                 iterations=attack_params.get("iterations")
+            )
+
+        elif attack_type == "idlg":
+            return idlg_attack(
+                gradients=gradients,
+                lr=attack_params.get("attack_lr"),
+                iterations=attack_params.get("iterations")
+            )
+
+        elif attack_type == "mdlg":
+            return mdlg_attack(
+                gradients=gradients,
+                lr=attack_params.get("attack_lr"),
+                iterations=attack_params.get("iterations"),
+                reg_tv=attack_params.get("reg_tv"),
+                reg_l2=attack_params.get("reg_l2")
             )
         # Add DLG for CIFAR-10 here if needed
         else:

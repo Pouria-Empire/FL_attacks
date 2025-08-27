@@ -1,11 +1,11 @@
 server:
   address: "0.0.0.0:8080"
   rounds: 20
-  min_clients: 2
+  min_clients: 1
 
 clients:
-  total: 2
-  batch_size: 128     # Batch size for all clients
+  total: 1
+  batch_size: 64     # Batch size for all clients
   local_epochs: 2   # Clients train for 1 full epoch on their data
   learning_rate: 0.001
 
@@ -15,29 +15,44 @@ data:
   # train_list: "train_val_list.txt"
   # test_list: "test_list.txt"
 
-  type: "cifar10"
-  path: "./data/cifar10"
+  # type: "cifar10"
+  # path: "./data/cifar10"
 
     # --- Configurable Parameters for image casting data---
   # img_size: 128
   # num_classes: 1 # For binary classification
   # class_names: ["ok_front", "def_front"]
 
-  img_size: 32
-  num_classes: 10 # For CIFAR100
-  class_names: ["airplane", "automobile", "bird", "cat", "deer","dog", "frog", "horse", "ship", "truck"]
+  # img_size: 32
+  # num_classes: 10 # For CIFAR100
+  # class_names: ["airplane", "automobile", "bird", "cat", "deer","dog", "frog", "horse", "ship", "truck"]
+
+
+    # Set the type to "medmnist"
+  type: "medmnist"
+  
+  # Specify the ChestMNIST dataset
+  dataset_name: "chestmnist"
+  
+  # Path to store the downloaded MedMNIST data
+  path: "./data/medmnist"
+  
+  # Update parameters for ChestMNIST (14 output classes)
+  img_size: 28
+  num_classes: 14 
+  class_names: ["atelectasis", "cardiomegaly", "effusion", "infiltration", "mass", "nodule", "pneumonia", "pneumothorax", "consolidation", "edema", "emphysema", "fibrosis", "pleural thickening", "hernia"]
 
 attacks:
   gradient_inversion:
     enable: true
     target_client: 1
-    type: "ggl"   # <-- mdlg, dlg, ggl,gradinversion_plus,temporal (actually idlg)
+    type: "mdlg"   # <-- mdlg, dlg, ggl,gradinversion_plus,temporal (actually idlg)
     client_lr: 0.001
     attack_batch_size: 1
     # The learning rate for the attack's optimizer. Lower values (e.g., 0.01) are more stable.
     attack_lr: 0.001
     # The total number of optimization steps for the attack.
-    iterations: 4000
+    iterations: 1000
     # The number of parallel reconstructions to run for group consistency.
     num_seeds: 8
     # The strength of the Total Variation regularization (reduces noise).
@@ -83,7 +98,7 @@ mitigations:
     encryption_delay: 5.0 # Seconds to pause to simulate encryption overhead
   
   mydefense_params:
-    utility_threshold: -10.0  # Allow for small, noisy decreases in accuracy
+    utility_threshold: 0.05  # Allow for small, noisy decreases in accuracy
     leakage_threshold: 0.20   # If SSIM-based MyFunc score > 0.6, trigger encryption
     alpha: 0.0
     beta: 1.0                 # Weight for image leakage (set to 1 as it's the only component)

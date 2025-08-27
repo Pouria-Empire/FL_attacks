@@ -11,3 +11,4 @@ pillow
 scikit-learn
 seaborn
 tensorflow
+medmnist

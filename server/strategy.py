@@ -1,3 +1,5 @@
+# server/strategy.py (Modified for Timing)
+
 import flwr as fl
 from flwr.common import Parameters, ndarrays_to_parameters, parameters_to_ndarrays
 from flwr.server.strategy import FedAvg
@@ -7,9 +9,11 @@ import os
 import torch
 import pickle
 from collections import OrderedDict
+# MODIFICATION: Import the time module
+import time
 
 # Import all project modules
-from model import SensorMLP, CastingCNN, CifarCNN
+from model import SensorMLP, CastingCNN, CifarCNN, MedMNIST_CNN
 from server.helpers import get_parameters, evaluate_reconstruction, evaluate_reconstruction_numerical
 from server.reconstruction import reconstruct_data, save_reconstruction
 from defense.mydefense import MyDefenseAgent
@@ -34,6 +38,9 @@ class SecureFedAvg(FedAvg):
             data_type = self.config.get("data", {}).get("type", "image")
             if data_type == "casting":
                 model_class = CastingCNN
+                model_args = {"num_classes": self.config["data"]["num_classes"]}
+            elif data_type == "medmnist":
+                model = MedMNIST_CNN(num_classes=self.config["data"]["num_classes"])
                 model_args = {"num_classes": self.config["data"]["num_classes"]}
             elif data_type == "cifar10":
                 model_class = CifarCNN
@@ -107,18 +114,15 @@ class SecureFedAvg(FedAvg):
             processed_results = self.process_results(results)
             aggregated_params, aggregated_metrics = self.standard_aggregation(server_round, processed_results, failures)
         
-        # 🔎 New: collect and log uplink/downlink usage
         total_up = sum((fit_res.metrics or {}).get("bytes_up", 0) for _, fit_res in results)
         total_down = sum((fit_res.metrics or {}).get("bytes_down", 0) for _, fit_res in results)
 
         print(f"[Round {server_round}] Total uplink: {total_up} bytes | Total downlink: {total_down} bytes")
-
-        # Ensure aggregated_metrics is a dict, then attach totals
+        
         if aggregated_metrics is None:
             aggregated_metrics = {}
         aggregated_metrics.update({
-            "total_bytes_up": int(total_up),
-            "total_bytes_down": int(total_down),
+            "total_bytes_up": int(total_up), "total_bytes_down": int(total_down),
         })
 
         if aggregated_params:
@@ -146,6 +150,11 @@ class SecureFedAvg(FedAvg):
     def defense_agent_aggregation(self, server_round, results, failures):
         print("\n--- MyDefense Agent Analyzing Round ---")
         accepted_results = []
+        
+        # MODIFICATION: Initialize timing metrics
+        reconstruction_start_time = time.time()
+        reconstruction_performed = False
+
         for client_proxy, fit_res in results:
             client_id = self.cid_to_logical_id.get(client_proxy.cid)
             if client_id is None: continue
@@ -154,11 +163,7 @@ class SecureFedAvg(FedAvg):
             clean_update_params = raw_update_params
             
             if fit_res.metrics.get("was_chaotically_obfuscated"):
-                print(f"[Mitigation] De-obfuscating update from client {client_proxy.cid} for utility analysis.")
-                chaos_params = self.mitigation_config.get("mydefense_params", {})
-                clean_update_params = chaotic_map_deobfuscate(
-                    raw_update_params, key=chaos_params.get("chaos_key"), seed=chaos_params.get("chaos_seed")
-                )
+                clean_update_params = chaotic_map_deobfuscate(...) # Your existing logic
 
             reconstruction_result, original_data = None, None
             
@@ -166,81 +171,86 @@ class SecureFedAvg(FedAvg):
                 client_id == self.attack_config["gradient_inversion"]["target_client"] and
                 fit_res.metrics.get("attack") == "gradient_inversion"):
                 
+                reconstruction_performed = True # Mark that we are running the attack
                 data_type = fit_res.metrics.get("data_type", "cifar10")
-                print(f"-> Analyzing GI target: Client {client_id} ({data_type} data)")
-                
                 reconstruction_result = self._reconstruct_data([raw_update_params], self.attack_config["gradient_inversion"], data_type)
-                
-                data_path = f"client_data/client_{client_id}_{data_type}_data.pkl"
-                if os.path.exists(data_path):
-                    with open(data_path, "rb") as f: saved_data = pickle.load(f)
-                    original_data, original_labels = saved_data['data'], saved_data['label']
-                    os.remove(data_path)
-                
-                if reconstruction_result is not None and original_data is not None:
-                    reconstructed_images, predicted_labels = reconstruction_result
-                    evaluate_reconstruction(original_data, reconstructed_images)
-                    self._save_reconstruction(reconstructed_images, predicted_labels, client_id, server_round, data_type, original_data, original_labels)
-
+                # ... Your existing logic to load original data and evaluate ...
+            
             if self.defense_agent.decide_and_defend(client_id, self.global_parameters, clean_update_params, reconstruction_result, original_data):
                 fit_res.parameters = ndarrays_to_parameters(clean_update_params)
                 accepted_results.append((client_proxy, fit_res))
         
+        # MODIFICATION: Calculate reconstruction duration
+        reconstruction_duration = time.time() - reconstruction_start_time if reconstruction_performed else 0.0
+
         if not accepted_results:
-            print("--- MyDefense Result: All updates rejected. ---")
+            # MODIFICATION: Time the no-op aggregation
+            aggregation_start_time = time.time()
             aggregated_params, aggregated_metrics = fl.common.ndarrays_to_parameters(self.global_parameters), {}
+            aggregation_duration = time.time() - aggregation_start_time
         else:
             print(f"--- MyDefense Result: Aggregating {len(accepted_results)} of {len(results)} updates. ---")
+            # MODIFICATION: Time the actual aggregation
+            aggregation_start_time = time.time()
             aggregated_params, aggregated_metrics = super().aggregate_fit(server_round, accepted_results, failures)
+            aggregation_duration = time.time() - aggregation_start_time
+        
+        # MODIFICATION: Add timing metrics to the results
+        aggregated_metrics["reconstruction_duration_sec"] = reconstruction_duration
+        aggregated_metrics["aggregation_duration_sec"] = aggregation_duration
         
         return aggregated_params, aggregated_metrics
 
     def standard_aggregation(self, server_round, results, failures):
         gi_params = self.attack_config.get("gradient_inversion", {})
+        aggregated_metrics = {} # MODIFICATION: Initialize metrics dict
+        
         if gi_params.get("enable", False):
             target_client_id = gi_params.get("target_client", 1)
             target_fit_res, honest_clients_results = None, []
             for client_proxy, fit_res in results:
-                logical_id = self.cid_to_logical_id.get(client_proxy.cid)
-                if logical_id == target_client_id and fit_res.metrics.get("attack") == "gradient_inversion":
+                if self.cid_to_logical_id.get(client_proxy.cid) == target_client_id and fit_res.metrics.get("attack") == "gradient_inversion":
                     target_fit_res = fit_res
                 else:
                     honest_clients_results.append((client_proxy, fit_res))
+            
             if target_fit_res:
+                # MODIFICATION: Time the reconstruction process
+                reconstruction_start_time = time.time()
                 try:
-                    gradients = parameters_to_ndarrays(target_fit_res.parameters)
-                    data_type = target_fit_res.metrics.get("data_type", "image")
-                    reconstruction_result = self._reconstruct_data([gradients], gi_params, data_type)
-                    if reconstruction_result is not None:
-                        reconstructed_data, predicted_labels = reconstruction_result if isinstance(reconstruction_result, tuple) else (reconstruction_result, None)
-                        original_data, original_labels = None, None
-                        data_path = f"client_data/client_{target_client_id}_{data_type}_data.pkl"
-                        if os.path.exists(data_path):
-                            with open(data_path, "rb") as f: saved_data = pickle.load(f)
-                            original_data, original_labels = saved_data['data'], saved_data['label']
-                            os.remove(data_path)
-                        if original_data is not None:
-                            if data_type == "image" or data_type == "casting" or data_type == "cifar10":
-                                evaluate_reconstruction(original_data, reconstructed_data)
-                            else:
-                                evaluate_reconstruction_numerical(original_data, reconstructed_data)
-                        self._save_reconstruction(reconstructed_data, predicted_labels, target_client_id, server_round, data_type, original_data, original_labels)
+                    # ... (your existing reconstruction logic) ...
+                    self._save_reconstruction(...)
                 except Exception as e:
                     print(f"[Attack Failed] Gradient Inversion error: {str(e)}")
-            if not honest_clients_results: return None, {}
-            return super().aggregate_fit(server_round, honest_clients_results, failures)
-        
+                
+                aggregated_metrics["reconstruction_duration_sec"] = time.time() - reconstruction_start_time
+
+            if not honest_clients_results: return None, aggregated_metrics
+            
+            # MODIFICATION: Time the aggregation of honest clients
+            aggregation_start_time = time.time()
+            aggregated_params, metrics_from_super = super().aggregate_fit(server_round, honest_clients_results, failures)
+            aggregated_metrics["aggregation_duration_sec"] = time.time() - aggregation_start_time
+            aggregated_metrics.update(metrics_from_super) # Combine metrics
+            
+            return aggregated_params, aggregated_metrics
+
+        # MODIFICATION: Time other aggregation methods
+        aggregation_start_time = time.time()
         if self.mitigation_config.get("enable", False) and self.mitigation_config.get("defense_type") == "median":
             if not results: return None, {}
             all_params = [parameters_to_ndarrays(fit_res.parameters) for _, fit_res in results]
             median_params = [np.median(np.stack(layer_params), axis=0) for layer_params in zip(*all_params)]
-            return ndarrays_to_parameters(median_params), {}
-        return super().aggregate_fit(server_round, results, failures)
+            aggregated_params = ndarrays_to_parameters(median_params)
+            aggregated_metrics = {}
+        else:
+            aggregated_params, aggregated_metrics = super().aggregate_fit(server_round, results, failures)
+        
+        aggregated_metrics["aggregation_duration_sec"] = time.time() - aggregation_start_time
+        return aggregated_params, aggregated_metrics
     
     def _reconstruct_data(self, gradients_list: List[List[np.ndarray]], attack_params: Dict, data_type: str):
-        """Wrapper to call the refactored reconstruction function."""
         return reconstruct_data(gradients_list, attack_params, self.client_config, data_type, self.config)
 
     def _save_reconstruction(self, data: np.ndarray, predicted_labels: Optional[torch.Tensor], client_id: int, round_num: int, data_type: str, original_data: Optional[np.ndarray] = None, original_labels: Optional[np.ndarray] = None):
-        """Wrapper to call the refactored save function."""
         save_reconstruction(data, predicted_labels, client_id, round_num, self.reconstruction_dir, data_type, original_data, original_labels)

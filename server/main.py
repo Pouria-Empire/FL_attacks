@@ -8,7 +8,7 @@ import numpy as np
 # Import from the new server package and other modules
 from server.helpers import load_config, set_parameters, test_and_log_misclassifications, safe_metrics_aggregation
 from server.strategy import SecureFedAvg
-from model import CastingCNN, SensorMLP, CifarCNN
+from model import CastingCNN, SensorMLP, CifarCNN, MedMNIST_CNN 
 
 # Import all data loaders
 from utils_data.casting_data_util import load_data as load_casting_data
@@ -16,7 +16,7 @@ from utils_data.sensor_data_util import load_sensor_data, load_and_preprocess_da
 from utils_data.cifar_data_util import load_data as load_cifar_data
 from attacks.data_poisoning import PoisonedDataset
 from attacks.numerical_attacks import PoisonedSensorDataset
-
+from utils_data.medmnist_data_util import load_data as load_medmnist_data
 
 def main():
     """Load data, start Flower server with all features."""
@@ -47,6 +47,15 @@ def main():
         trainset, testset = load_cifar_data(
             data_config["path"],
             data_config["img_size"]
+        )
+        testloader = DataLoader(testset, batch_size=64)
+        server_holdout = Subset(trainset, list(range(500)))
+        server_holdout_loader = DataLoader(server_holdout, batch_size=64)
+    elif data_type == "medmnist":
+        print("Server loading MedMNIST dataset...")
+        trainset, testset = load_medmnist_data(
+            data_config["dataset_name"],
+            data_config["path"]
         )
         testloader = DataLoader(testset, batch_size=64)
         server_holdout = Subset(trainset, list(range(500)))
