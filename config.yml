@@ -1,10 +1,10 @@
 server:
   address: "0.0.0.0:8080"
-  rounds: 20
-  min_clients: 1
+  rounds: 5
+  min_clients: 2
 
 clients:
-  total: 1
+  total: 2
   batch_size: 64     # Batch size for all clients
   local_epochs: 2   # Clients train for 1 full epoch on their data
   learning_rate: 0.001
@@ -32,31 +32,26 @@ data:
   type: "medmnist"
   
   # Specify the ChestMNIST dataset
-  dataset_name: "chestmnist"
-  
-  # Path to store the downloaded MedMNIST data
+  type: "medmnist"
+  dataset_name: "pneumoniamnist" # Use this dataset
   path: "./data/medmnist"
-  
-  # Update parameters for ChestMNIST (14 output classes)
-  img_size: 28
-  num_classes: 14 
-  class_names: ["atelectasis", "cardiomegaly", "effusion", "infiltration", "mass", "nodule", "pneumonia", "pneumothorax", "consolidation", "edema", "emphysema", "fibrosis", "pleural thickening", "hernia"]
+  num_classes: 1 # Binary task (output is 1 logit)
 
 attacks:
   gradient_inversion:
-    enable: true
+    enable: false
     target_client: 1
-    type: "mdlg"   # <-- mdlg, dlg, ggl,gradinversion_plus,temporal (actually idlg)
+    type: "ggl"   # <-- mdlg, idlg, ggl,gradinversion_plus,temporal (actually idlg)
     client_lr: 0.001
     attack_batch_size: 1
     # The learning rate for the attack's optimizer. Lower values (e.g., 0.01) are more stable.
-    attack_lr: 0.001
+    attack_lr: 0.01
     # The total number of optimization steps for the attack.
-    iterations: 1000
+    iterations: 5000
     # The number of parallel reconstructions to run for group consistency.
     num_seeds: 8
     # The strength of the Total Variation regularization (reduces noise).
-    reg_tv: 0.0001
+    reg_tv: 0.01
     # The strength of the L2 norm regularization (stabilizes pixel values).
     reg_l2: 0.00001
     # The strength of the group consistency regularization (improves clarity).
@@ -65,11 +60,12 @@ attacks:
     history_size: 1
 
   model_poisoning:
-    enable: false
+    enable: true
     malicious_clients: [2] # Client 2 will be the attacker
     type: "scaling"        # Can be "scaling", "sign_flip", or "noise"
     scale_factor: -2.0     # Used only for "scaling" attack
     noise_scale: 0.5       # Used only for "noise" attack
+    attack_probability: 0.5
 
   data_poisoning:
     enable: false
@@ -78,6 +74,7 @@ attacks:
     poison_frac: 0.7       # Poison 50% of the malicious client's data
     trigger_noise_level: 0.5
     debug_malicious_client: false
+    attack_probability: 1
 
 
 mitigations:

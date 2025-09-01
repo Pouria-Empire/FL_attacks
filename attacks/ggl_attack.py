@@ -8,7 +8,7 @@ from collections import OrderedDict
 # Import the correct model the attack is targeting
 from model import CifarCNN
 # Assumes the generator class is defined in this file or imported
-from train_cifar_generator import Generator as CifarGenerator
+from trainer.train_cifar_generator import Generator as CifarGenerator
 
 def total_variation_loss(img: torch.Tensor) -> torch.Tensor:
     """Computes the total variation loss for a batch of images to reduce noise."""

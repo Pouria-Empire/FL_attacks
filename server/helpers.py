@@ -33,6 +33,8 @@ def test_and_log_misclassifications(
     is_backdoor_test: bool,
     target_label: int,
     data_type: str,
+    # FIX 1: Add the missing 'num_classes' parameter to the function signature.
+    num_classes: int,
     class_names: List[str]
 ) -> Tuple[float, float]:
     """
@@ -41,8 +43,11 @@ def test_and_log_misclassifications(
     model.eval()
     correct, total, total_loss = 0, 0, 0.0
     
-    is_binary_image = (data_type == "image" or data_type == "casting")
-    criterion = torch.nn.BCEWithLogitsLoss() if is_binary_image else torch.nn.CrossEntropyLoss()
+    # FIX 2: Use num_classes to correctly determine the task type.
+    # This is more robust than checking the data_type string.
+    is_binary_or_multilabel = (num_classes == 1) or (data_type == "medmnist" and "chestmnist" in test_loader.dataset.dataset.info['name'])
+
+    criterion = torch.nn.BCEWithLogitsLoss() if is_binary_or_multilabel else torch.nn.CrossEntropyLoss()
     log_file = "backdoor_misclassifications.log"
     
     successful_flips = 0
@@ -53,20 +58,32 @@ def test_and_log_misclassifications(
             outputs = model(data)
             total += labels.size(0)
 
-            if is_binary_image:
-                labels_for_loss = labels.float().view(-1, 1)
+            if is_binary_or_multilabel:
+                labels_for_loss = labels.float()
+                # For binary tasks, ensure labels have the same shape as outputs
+                if num_classes == 1:
+                    labels_for_loss = labels_for_loss.view(-1, 1)
+
                 total_loss += criterion(outputs, labels_for_loss).item() * data.size(0)
                 predicted = torch.sigmoid(outputs) > 0.5
-                correct += (predicted == labels_for_loss).sum().item()
-            else: # Sensor or CIFAR-10
+                correct += (predicted == labels_for_loss).all(dim=1).sum().item()
+            else: # Multi-class
+                labels = labels.squeeze().long()
                 total_loss += criterion(outputs, labels).item() * data.size(0)
                 _, predicted = torch.max(outputs.data, 1)
                 correct += (predicted == labels).sum().item()
             
             if is_backdoor_test:
-                for i in range(len(predicted)):
-                    true_label = labels[i].item()
-                    predicted_label = predicted[i].item()
+                # This part needs to be adapted if you plan to backdoor multi-label datasets.
+                # For now, it assumes single-label prediction for logging.
+                pred_for_logging = predicted.squeeze()
+                if is_binary_or_multilabel and pred_for_logging.dim() > 1:
+                     _, pred_for_logging = torch.max(pred_for_logging, 1)
+
+
+                for i in range(len(pred_for_logging)):
+                    true_label = labels[i].item() if labels[i].numel() == 1 else torch.argmax(labels[i]).item()
+                    predicted_label = pred_for_logging[i].item()
                     
                     if true_label != target_label:
                         total_non_target += 1
@@ -74,8 +91,10 @@ def test_and_log_misclassifications(
                             successful_flips += 1
                             with open(log_file, "a") as f:
                                 f.write(f"SUCCESSFUL MISCLASSIFICATION ({data_type.upper()}):\n")
-                                f.write(f"  - Original Label: {class_names[true_label] if class_names else true_label}\n")
-                                f.write(f"  - Model Predicted: {class_names[target_label] if class_names else target_label} (due to trigger)\n\n")
+                                original_name = class_names[true_label] if class_names and true_label < len(class_names) else true_label
+                                target_name = class_names[target_label] if class_names and target_label < len(class_names) else target_label
+                                f.write(f"  - Original Label: {original_name}\n")
+                                f.write(f"  - Model Predicted: {target_name} (due to trigger)\n\n")
     
     if is_backdoor_test:
         accuracy = successful_flips / total_non_target if total_non_target > 0 else 0
